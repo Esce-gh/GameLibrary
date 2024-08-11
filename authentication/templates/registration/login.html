@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <h1>login</h1>
+    <br>
+
+    <form method="POST">
+        {% csrf_token %}
+        {{ form }}
+        <button type="submit">Login</button>
+        <p><a href="{% url 'register' %}">Create an account here</a></p>
+    </form>
+</body>
+</html>
