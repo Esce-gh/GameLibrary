@@ -6,6 +6,16 @@
 </head>
 <body>
     <h2>Welcome!</h2>
+    {% if user.is_authenticated %}
+        Logged in as {{ user.username }}
+        <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit">logout</button>
+        </form>
+        <br>
+        <a href="{% url 'main:library' %}">library</a>
+        <br>
+    {% endif %}
 
     <p>
         <a href="{% url 'login' %}">login</a>

@@ -20,6 +20,7 @@ from authentication import views as auth_views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path("register/", auth_views.register, name="register"),
+
     path("accounts/", include("django.contrib.auth.urls")),
     path("", include("main.urls")),
 ]

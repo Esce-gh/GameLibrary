@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    {% if games %}
+        <ul>
+            {% for game in games %}
+                <li>{{ game.game.name }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</body>
+</html>
