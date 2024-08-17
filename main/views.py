@@ -3,6 +3,7 @@ from django.core.paginator import Paginator, Page
 from django.db.models import Q
 from django.shortcuts import render
 
+from GameLibrary import settings
 from main.models import UserGameLibrary, Game
 from .services import Igdb
 
@@ -33,8 +34,7 @@ def search(request):
 
     # TODO: cache
     games = Game.games.search(query)
-
-    paginator = Paginator(games, 10)
+    paginator = Paginator(games, settings.GLOBAL_SETTINGS['MAX_GAMES_PER_PAGE'])
     page_number = request.GET.get("page")
     if page_number is None:
         page_number = 1
