@@ -46,7 +46,10 @@ def search(request):
     api_search = request.GET.get("api_search")
     if api_search or games.count() == 0:
         games_api = Game.games.search_api_excluding(query, games)
-        page_obj = Page(games_api, paginator.num_pages if games.count() == 0 else paginator.num_pages+1, paginator)
+        if len(games_api) != 0:
+            page_obj = Page(games_api, paginator.num_pages if games.count() == 0 else paginator.num_pages+1, paginator)
+        else:
+            context.update({'error_api_results': True})
 
     context.update({"page_obj": page_obj})
     return render(request, "main/search_games.html", context)
