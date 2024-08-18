@@ -1,11 +1,11 @@
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator, Page
-from django.db.models import Q
-from django.shortcuts import render
-
+from django.http import HttpResponseBadRequest, HttpResponseNotFound
+from django.shortcuts import render, get_object_or_404, redirect
+from django.urls import reverse
+from django.contrib import messages
 from GameLibrary import settings
 from main.models import UserGameLibrary, Game
-from .services import Igdb
 
 
 # Create your views here.
@@ -53,3 +53,42 @@ def search(request):
 
     context.update({"page_obj": page_obj})
     return render(request, "main/search_games.html", context)
+
+
+def game(request, game_id):
+    context = {"game": get_object_or_404(Game, igdb_id=game_id)}
+
+    if request.user.is_authenticated:
+        user_entry = UserGameLibrary.objects.get_user_library(request.user.id, game_id)
+        context.update({'user_entry': user_entry})
+
+    return render(request, "main/game.html", context)
+
+
+def game_add(request, game_id):
+    if request.method != "POST" or not request.user.is_authenticated:
+        return HttpResponseBadRequest()
+
+    if UserGameLibrary.objects.save_library(request.user.id, game_id):
+        messages.success(request, "Game was successfully saved.")
+    else:
+        messages.error(request, "Game was not successfully saved.")
+    return redirect(reverse("main:game", args=[game_id]))
+
+
+def game_update(request, game_id):
+    if request.method != "POST" or not request.user.is_authenticated:
+        return HttpResponseBadRequest()
+
+    if UserGameLibrary.objects.update_library(request.user.id, game_id, request.POST['review'], request.POST['rating']):
+        messages.success(request, "Game successfully updated")
+    else:
+        messages.error(request, "Unable to update game")
+    return redirect(reverse("main:game", args=[game_id]))
+
+
+def game_delete(request, game_id):
+    if request.method != "POST" or not request.user.is_authenticated:
+        return HttpResponseBadRequest()
+    UserGameLibrary.objects.delete_library(request.user.id, game_id)
+    return redirect(reverse("main:game", args=[game_id]))

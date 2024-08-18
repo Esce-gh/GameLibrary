@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <h2>{{ game.name }}</h2>
+
+    {% if user.is_authenticated %}
+        {% if user_entry %}
+            <form method="post" action="{% url 'main:game_delete' game_id=game.igdb_id %}">
+                {% csrf_token %}
+                <button type="submit">Remove game from library</button>
+            </form>
+        {% else %}
+            <form method="post" action="{% url 'main:game_add' game_id=game.igdb_id %}">
+                {% csrf_token %}
+                <button type="submit">Add game to library</button>
+            </form>
+        {% endif %}
+
+        {% if user_entry %}
+            <form method="post" action="{% url 'main:game_edit' game_id=game.igdb_id %}">
+                {% csrf_token %}
+
+                <label for='review'>Review</label>
+                <textarea id='review' name='review'>{{ user_entry.review|default_if_none:"" }}</textarea>
+                <br>
+                <label for="rating">Rating</label>
+                <input type="number" id='rating' name="rating" min='1' max="10" step="0.1" value="{{ user_entry.rating|default_if_none:"" }}">
+                <br>
+                <button type="submit">Save</button>
+            </form>
+        {% endif %}
+
+    {% endif %}
+
+    {% if messages %}
+        <ul>
+            {% for message in messages %}
+                <li>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</body>
+</html>
