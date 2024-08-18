@@ -1,6 +1,6 @@
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator, Page
-from django.http import HttpResponseBadRequest, HttpResponseNotFound
+from django.http import HttpResponseBadRequest, HttpResponseNotFound, HttpResponseNotAllowed, HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.contrib import messages
@@ -66,8 +66,10 @@ def game(request, game_id):
 
 
 def game_add(request, game_id):
-    if request.method != "POST" or not request.user.is_authenticated:
-        return HttpResponseBadRequest()
+    if request.method != "POST":
+        return HttpResponseNotAllowed(['POST'])
+    if not request.user.is_authenticated:
+        return redirect(reverse("login"))
 
     if UserGameLibrary.objects.save_library(request.user.id, game_id):
         messages.success(request, "Game was successfully saved.")
@@ -76,9 +78,11 @@ def game_add(request, game_id):
     return redirect(reverse("main:game", args=[game_id]))
 
 
-def game_update(request, game_id):
-    if request.method != "POST" or not request.user.is_authenticated:
-        return HttpResponseBadRequest()
+def game_edit(request, game_id):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(['POST'])
+    if not request.user.is_authenticated:
+        return redirect(reverse("login"))
 
     if UserGameLibrary.objects.update_library(request.user.id, game_id, request.POST['review'], request.POST['rating']):
         messages.success(request, "Game successfully updated")
@@ -88,7 +92,10 @@ def game_update(request, game_id):
 
 
 def game_delete(request, game_id):
-    if request.method != "POST" or not request.user.is_authenticated:
-        return HttpResponseBadRequest()
+    if request.method != "POST":
+        return HttpResponseNotAllowed(['POST'])
+    if not request.user.is_authenticated:
+        return redirect(reverse("login"))
+
     UserGameLibrary.objects.delete_library(request.user.id, game_id)
     return redirect(reverse("main:game", args=[game_id]))
