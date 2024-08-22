@@ -19,7 +19,7 @@
     {% if page_obj.object_list %}
         <ul>
             {% for game in page_obj.object_list %}
-                <li>{{ game.name }}</li>
+                <li><a href="{% url 'main:game' game_id=game.igdb_id %}">{{ game.name }}</a></li>
             {% endfor %}
         </ul>
     {% endif %}

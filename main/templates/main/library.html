@@ -5,10 +5,10 @@
     <title>Title</title>
 </head>
 <body>
-    {% if games %}
+    {% if library %}
         <ul>
-            {% for game in games %}
-                <li>{{ game.game.name }}</li>
+            {% for entry in library %}
+                <li><a href="{% url 'main:game' game_id=entry.game_id %}">{{ entry.game.name }}</a></li>
             {% endfor %}
         </ul>
     {% endif %}

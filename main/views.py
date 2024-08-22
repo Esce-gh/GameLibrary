@@ -16,8 +16,8 @@ def index(request):
 @login_required
 def library(request):
     # TODO: paging
-    games = UserGameLibrary.objects.filter(user=request.user)
-    context = {"games": games}
+    user_library = UserGameLibrary.objects.get_user_library(request.user.id)
+    context = {"library": user_library}
     return render(request, "main/library.html", context)
 
 
@@ -59,7 +59,7 @@ def game(request, game_id):
     context = {"game": get_object_or_404(Game, igdb_id=game_id)}
 
     if request.user.is_authenticated:
-        user_entry = UserGameLibrary.objects.get_user_library(request.user.id, game_id)
+        user_entry = UserGameLibrary.objects.get_library_entry(request.user.id, game_id)
         context.update({'user_entry': user_entry})
 
     return render(request, "main/game.html", context)

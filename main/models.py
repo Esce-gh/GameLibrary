@@ -41,8 +41,11 @@ class Game(models.Model):
 
 
 class UserGameLibraryManager(models.Manager):
-    def get_user_library(self, user_id, game_id):
+    def get_library_entry(self, user_id, game_id):
         return self.filter(user_id=user_id, game_id=game_id).first()
+    
+    def get_user_library(self, user_id):
+        return self.filter(user_id=user_id)
 
     def save_library(self, user_id, game_id):
         try:
