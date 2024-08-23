@@ -1,28 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends "base.html" %}
+
+{% block title %}Main page{% endblock %}
+
+{% block active_home %}active{% endblock %}
+
+{% block content %}
     <h2>Welcome!</h2>
     {% if user.is_authenticated %}
         Logged in as {{ user.username }}
-        <form method="post" action="{% url 'logout' %}">
-            {% csrf_token %}
-            <button type="submit">logout</button>
-        </form>
-        <br>
-        <a href="{% url 'main:library' %}">library</a>
-        <br>
-        <a href="{% url 'main:search' %}">search games</a>
-        <br>
     {% endif %}
-
-    <p>
-        <a href="{% url 'login' %}">login</a>
-        <br>
-        <a href="{% url 'register' %}">register</a>
-    </p>
-</body>
-</html>
+{% endblock %}

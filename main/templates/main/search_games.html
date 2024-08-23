@@ -1,57 +1,64 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
-    <form method="get" action="{% url 'main:search' %}">
-        <label for="query">Search:</label>
-        <input type="text" id="query" name="query">
-        <button type="submit">Search</button>
-    </form>
-    <br>
+{% extends 'base.html' %}
 
-    {% if error_length %}
-        <h3>Please enter at least 4 characters.</h3>
-    {% endif %}
+{% block title %}Search{% endblock %}
 
-    {% if page_obj.object_list %}
-        <ul>
-            {% for game in page_obj.object_list %}
-                <li><a href="{% url 'main:game' game_id=game.igdb_id %}">{{ game.name }}</a></li>
-            {% endfor %}
-        </ul>
-    {% endif %}
+{% block active_search %}active{% endblock %}
 
-    {% if page_obj %}
-        <div class="pagination">
-        <span class="step-links">
-            {% if page_obj.has_previous %}
-                <a href="?query={{ query }}&page=1">&laquo; first</a>
-                <a href="?query={{ query }}&page={{ page_obj.previous_page_number }}">previous</a>
-            {% endif %}
+{% block content %}
+    <div class="container search-container">
+        {#        <form method="get" action="{% url 'main:search' %}">#}
+        {#            <label for="query">Search:</label>#}
+        {#            <input type="text" id="query" name="query">#}
+        {#            <button type="submit">Search</button>#}
+        {#        </form>#}
+        <div class="input-group input-group-lg search-bar">
+            <input type="text" class="form-control" aria-label="Sizing example input" placeholder="Search...">
+            <button class="btn btn-primary" type="submit">
+                Search
+            </button>
+        </div>
+        <br>
 
-            <span class="current">
-                {% if page_obj.number > page_obj.paginator.num_pages %}
-                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages|add:1 }}.
-                {% else %}
-                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
-                {% endif %}
-            </span>
+        {% if error_length %}
+            <h3>Please enter at least 4 characters.</h3>
+        {% endif %}
 
-            {% if page_obj.has_next %}
-                <a href="?query={{ query }}&page={{ page_obj.next_page_number }}">next</a>
-                <a href="?query={{ query }}&page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
-            {% else %}
-                <a href="?query={{ query }}&api_search=1">find more</a>
-            {% endif %}
-        </span>
+        {% if page_obj.object_list %}
+            <ul>
+                {% for game in page_obj.object_list %}
+                    <li><a href="{% url 'main:game' game_id=game.igdb_id %}">{{ game.name }}</a></li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        {% if page_obj %}
+            <div class="pagination">
+                <span class="step-links">
+                    {% if page_obj.has_previous %}
+                        <a href="?query={{ query }}&page=1">&laquo; first</a>
+                        <a href="?query={{ query }}&page={{ page_obj.previous_page_number }}">previous</a>
+                    {% endif %}
+
+                    <span class="current">
+                        {% if page_obj.number > page_obj.paginator.num_pages %}
+                            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages|add:1 }}.
+                        {% else %}
+                            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+                        {% endif %}
+                    </span>
+
+                    {% if page_obj.has_next %}
+                        <a href="?query={{ query }}&page={{ page_obj.next_page_number }}">next</a>
+                        <a href="?query={{ query }}&page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+                    {% else %}
+                        <a href="?query={{ query }}&api_search=1">find more</a>
+                    {% endif %}
+                </span>
+            </div>
+        {% endif %}
+
+        {% if error_api_results %}
+            <h2>Couldn't find more results</h2>
+        {% endif %}
     </div>
-    {% endif %}
-
-    {% if error_api_results %}
-        <h2>Couldn't find more results</h2>
-    {% endif %}
-</body>
-</html>
+{% endblock %}

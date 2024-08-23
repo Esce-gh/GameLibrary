@@ -1,10 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends 'base.html' %}
+
+{% block title %}Sign in{% endblock %}
+
+{% block content %}
     <h1>login</h1>
     <br>
 
@@ -14,5 +12,4 @@
         <button type="submit">Login</button>
         <p><a href="{% url 'register' %}">Create an account here</a></p>
     </form>
-</body>
-</html>
+{% endblock %}
