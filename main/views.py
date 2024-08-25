@@ -1,6 +1,6 @@
 from django.contrib.auth.decorators import login_required
-from django.core.paginator import Paginator, Page
-from django.http import HttpResponseBadRequest, HttpResponseNotFound, HttpResponseNotAllowed, HttpResponse
+from django.core.paginator import Paginator
+from django.http import HttpResponseNotAllowed, JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.contrib import messages
@@ -23,40 +23,46 @@ def library(request):
 
 def search(request):
     query = request.GET.get("query")
-    context = {"query": query}
-
-    if query is None:
-        return render(request, "main/search_games.html", context)
-
-    if query is not None and len(query.strip()) <= 3:
-        context.update({"error_length": True})
-        return render(request, "main/search_games.html", context)
-
-    # TODO: cache
-    games = Game.games.search(query)
-    paginator = Paginator(games, settings.GLOBAL_SETTINGS['MAX_GAMES_PER_PAGE'])
-    page_number = request.GET.get("page")
-    if page_number is None:
-        page_number = 1
-    page_obj = paginator.get_page(page_number)
-
-    if games.count() == 0 or int(page_number) == paginator.num_pages:
-        context.update({"show_api_button": True})
-
-    api_search = request.GET.get("api_search")
-    if api_search or games.count() == 0:
-        games_api = Game.games.search_api_excluding(query, games)
-        if len(games_api) != 0:
-            page_obj = Page(games_api, paginator.num_pages if games.count() == 0 else paginator.num_pages+1, paginator)
-        else:
-            context.update({'error_api_results': True})
-
-    context.update({"page_obj": page_obj})
+    if query is not None and len(query.strip()) < 3:
+        context = {"error_length": True}
+    else:
+        context = {"query": query}
     return render(request, "main/search_games.html", context)
 
 
+def ajax_search(request):
+    query = request.GET.get("query")
+    # if len(query) < 3:
+    #     return Http
+    page_number = int(request.GET.get("page", 1))
+
+    games = Game.games.search(query)  # TODO: order by and cache
+    paginator = Paginator(games.values('id', 'name'), settings.GLOBAL_SETTINGS['MAX_GAMES_PER_PAGE'])
+    if games.count() != 0 and page_number <= paginator.num_pages:
+        page = paginator.get_page(str(page_number))
+        items = list(page.object_list)
+
+        return JsonResponse({
+            'items': items,
+            'has_next': True,
+        })
+
+    games_api = Game.games.search_api_excluding(query, games)
+
+    if len(games_api) == 0:
+        return JsonResponse({
+            'items': [],
+            'has_next': False
+        })
+
+    return JsonResponse({
+        'items': games_api,
+        'has_next': True
+    })
+
+
 def game(request, game_id):
-    context = {"game": get_object_or_404(Game, igdb_id=game_id)}
+    context = {"game": get_object_or_404(Game, id=game_id)}
 
     if request.user.is_authenticated:
         user_entry = UserGameLibrary.objects.get_library_entry(request.user.id, game_id)

@@ -1,3 +1,13 @@
 .search-bar {
     margin-top: 4rem;
+    margin-bottom: 4rem;
+}
+
+.game-list-container {
+    overflow: auto;
+    height: 200px;
+}
+
+.loading {
+    display: none;
 }

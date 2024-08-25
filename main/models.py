@@ -15,7 +15,7 @@ class GameManager(models.Manager):
 
     def search_api_excluding(self, query, found_games):
         igdb_api = Igdb()
-        excluded_ids = [game.igdb_id for game in found_games]
+        excluded_ids = [game.id for game in found_games]
         games_api = igdb_api.extended_search(query, excluded_ids)
         self._save_games_from_json(games_api)
         return games_api
@@ -23,7 +23,7 @@ class GameManager(models.Manager):
     def _save_games_from_json(self, games):
         for game in games:
             try:
-                self.create(name=game["name"], igdb_id=game["id"])
+                self.create(name=game["name"], id=game["id"])
             except IntegrityError:
                 logger.exception(f"Failed to save, game with {game['id']} ID already exists in database")
 
@@ -33,7 +33,7 @@ class GameManager(models.Manager):
 
 class Game(models.Model):
     name = models.CharField(max_length=100)
-    igdb_id = models.IntegerField(unique=True, primary_key=True)
+    id = models.IntegerField(unique=True, primary_key=True)
     games = GameManager()
 
     def __str__(self):

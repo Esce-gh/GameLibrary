@@ -11,9 +11,9 @@ from main.models import Game, UserGameLibrary
 # Create your tests here.
 class GameManagerTests(TestCase):
     def test_search(self):
-        game1 = Game(name='doom', igdb_id=1)
-        game2 = Game(name='_doom_', igdb_id=2)
-        game3 = Game(name='quake', igdb_id=3)
+        game1 = Game(name='doom', id=1)
+        game2 = Game(name='_doom_', id=2)
+        game3 = Game(name='quake', id=3)
         Game.games.bulk_create([
             game1,
             game2,
@@ -27,66 +27,25 @@ class GameManagerTests(TestCase):
 
 class SearchViewTests(TestCase):
     def test_should_show_a_message_when_query_length_less_than_4(self):
-        response = self.client.get(reverse("main:search"), {'query': ' 123 '})
+        response = self.client.get(reverse("main:search"), {'query': ' 12 '})
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Please enter at least 4 characters.')
+        self.assertContains(response, 'Please enter at least 3 characters.')
 
     def test_should_not_show_a_message_when_query_length_correct(self):
-        response = self.client.get(reverse("main:search"), {'query': ' 1234 '})
+        response = self.client.get(reverse("main:search"), {'query': ' 123 '})
         self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, 'Please enter at least 4 characters.')
-
-    def test_search(self):
-        game1 = Game(name='_doom_', igdb_id=1)
-        game2 = Game(name='quake', igdb_id=2)
-        Game.games.bulk_create([
-            game1,
-            game2,
-        ])
-        response = self.client.get(reverse("main:search"), {'query': 'doom'})
-        self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, 'quake')
-        self.assertContains(response, '_doom_')
-
-    def test_should_show_find_more_button_on_last_page(self):
-        Game.games.create(name='doom', igdb_id=1)
-        response = self.client.get(reverse("main:search"), {'query': 'doom'})
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'find more')
-
-    def test_should_not_show_find_more_button_when_not_on_last_page(self):
-        for i in range(settings.GLOBAL_SETTINGS['MAX_GAMES_PER_PAGE'] + 1):
-            Game.games.create(name=f'game {i}', igdb_id=i)
-        response = self.client.get(reverse("main:search"), {'query': 'game'})
-        self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, 'find more')
-
-    @patch('main.models.GameManager.search_api_excluding')
-    def test_should_show_api_games_when_found(self, mock_api_search):
-        mock_api_search.return_value = [{'name': 'epic_name', 'igdb_id': 1}]
-
-        response = self.client.get(reverse("main:search"), {'query': 'game', 'api_search': '1'})
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'epic_name')
-
-    @patch('main.models.GameManager.search_api_excluding')
-    def test_should_show_error_when_api_games_not_found(self, mock_api_search):
-        mock_api_search.return_value = []
-
-        response = self.client.get(reverse("main:search"), {'query': 'game', 'api_search': '1'})
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Couldn't find more results")
+        self.assertNotContains(response, 'Please enter at least 3 characters.')
 
 
 class GameViewTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='test', password='test', pk=1)
         self.client.login(username='test', password='test')
-        self.game = Game(name="mock_game", igdb_id=1)
+        self.game = Game(name="mock_game", id=1)
         self.game.save()
 
     def test_should_show_game_when_found(self):
-        response = self.client.get(reverse("main:game", args=[self.game.igdb_id]))
+        response = self.client.get(reverse("main:game", args=[self.game.id]))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'mock_game')
 
@@ -97,10 +56,10 @@ class GameViewTests(TestCase):
         self.assertEqual(response.status_code, 404)
 
     def test_should_show_user_input_when_authenticated_and_library_entry_found(self):
-        library_entry = UserGameLibrary(user_id=self.user.id, game_id=self.game.igdb_id, review='mock_review', rating=5.5)
+        library_entry = UserGameLibrary(user_id=self.user.id, game_id=self.game.id, review='mock_review', rating=5.5)
         library_entry.save()
 
-        response = self.client.get(reverse("main:game", args=[self.game.igdb_id]))
+        response = self.client.get(reverse("main:game", args=[self.game.id]))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'mock_review')
         self.assertContains(response, '5.5')
@@ -108,7 +67,7 @@ class GameViewTests(TestCase):
         self.assertNotContains(response, 'Add game to library')
 
     def test_should_not_show_user_input_when_authenticated_and_library_entry_not_found(self):
-        response = self.client.get(reverse("main:game", args=[self.game.igdb_id]))
+        response = self.client.get(reverse("main:game", args=[self.game.id]))
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, 'mock_review')
         self.assertNotContains(response, '5.5')
@@ -117,7 +76,7 @@ class GameViewTests(TestCase):
 
     def test_should_not_show_user_input_when_not_authenticated(self):
         self.client.logout()
-        response = self.client.get(reverse("main:game", args=[self.game.igdb_id]))
+        response = self.client.get(reverse("main:game", args=[self.game.id]))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'mock_game')
         self.assertNotContains(response, "<label for='review'>")
@@ -126,28 +85,28 @@ class GameViewTests(TestCase):
         self.assertNotContains(response, 'Remove game from library')
 
     def test_should_return_405_when_game_add_method_not_post(self):
-        response = self.client.get(reverse("main:game_add", args=[self.game.igdb_id]))
+        response = self.client.get(reverse("main:game_add", args=[self.game.id]))
         self.assertEqual(response.status_code, 405)
 
     def test_should_return_405_when_game_update_method_not_post(self):
-        response = self.client.get(reverse("main:game_edit", args=[self.game.igdb_id]))
+        response = self.client.get(reverse("main:game_edit", args=[self.game.id]))
         self.assertEqual(response.status_code, 405)
 
     def test_should_return_405_when_game_delete_method_not_post(self):
-        response = self.client.get(reverse("main:game_delete", args=[self.game.igdb_id]))
+        response = self.client.get(reverse("main:game_delete", args=[self.game.id]))
         self.assertEqual(response.status_code, 405)
 
     def test_should_redirect_when_game_add_not_authorized(self):
         self.client.logout()
-        response = self.client.post(reverse("main:game_add", args=[self.game.igdb_id]))
+        response = self.client.post(reverse("main:game_add", args=[self.game.id]))
         self.assertRedirects(response, reverse("login"))
 
     def test_should_redirect_when_game_edit_not_authorized(self):
         self.client.logout()
-        response = self.client.post(reverse("main:game_edit", args=[self.game.igdb_id]))
+        response = self.client.post(reverse("main:game_edit", args=[self.game.id]))
         self.assertRedirects(response, reverse("login"))
 
     def test_should_redirect_when_game_delete_not_authorized(self):
         self.client.logout()
-        response = self.client.post(reverse("main:game_delete", args=[self.game.igdb_id]))
+        response = self.client.post(reverse("main:game_delete", args=[self.game.id]))
         self.assertRedirects(response, reverse("login"))

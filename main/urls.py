@@ -1,11 +1,11 @@
 from django.urls import path
 from . import views
 
-
 app_name = 'main'
 urlpatterns = [
     path("", views.index, name="index"),
     path("search", views.search, name="search"),
+    path("ajax_search", views.ajax_search, name="ajax_search"),
     path("library/", views.library, name="library"),
     path("game/<int:game_id>/", views.game, name="game"),
     path("game/<int:game_id>/add", views.game_add, name="game_add"),
