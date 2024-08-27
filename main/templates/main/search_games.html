@@ -19,17 +19,19 @@
         {% if error_length %}
             <h3>Please enter at least 3 characters.</h3>
         {% endif %}
-
-        <div class="game-list-container">
-            <div class="game-list"></div>
-            <div class="loading">
-                <h2>loading...</h2>
-            </div>
-        </div>
-
-        <script src="{% static 'ajax_search.js' %}"></script>
-        {% if query %}
-            <script>init("{{ query }}")</script>
-        {% endif %}
     </div>
+    <div class="container game-list-container">
+        <ul class="row g-3 game-list"></ul>
+        <div class="loading">
+            <h2>loading...</h2>
+        </div>
+        <div class="end-of-results">
+            <h2>No more results</h2>
+        </div>
+    </div>
+
+    <script src="{% static 'ajax_search.js' %}"></script>
+    {% if query %}
+        <script>init("{{ query }}")</script>
+    {% endif %}
 {% endblock %}

@@ -1,40 +1,50 @@
 let page = 1
 let has_next = true
 let loading = false
+const gamesContainer = $(".game-list-container")
+const gameList = $(".game-list")
 
 function load(query) {
     if (has_next === false || loading === true) {
         return
     }
     $.ajax({
-        url: "ajax_search",
-        type: "get", //send it through get method
+        url: "ajax_search", type: "get", //send it through get method
         data: {
-            query: query,
-            page: page
-        },
-        beforeSend: function () {
+            query: query, page: page
+        }, beforeSend: function () {
             loading = true
             $(".loading").show();
-        },
-        success: function (response) {
+        }, success: function (response) {
             response.items.forEach(function (item) {
-                $(".game-list").append(`<div class='game-container'><a href="/game/${item.id}">${item.name}</a></div>`)
+                gameList.append(`<li class='col-md-6'>
+                                    <div class="game-card bg-info-subtle">
+                                        <a style="vertical-align: middle" href="/game/${item.id}">${item.name}</a>
+                                    </div>
+                                </li>`)
             })
-            has_next = response.has_next
             page++;
-        },
-        complete: function () {
+            has_next = response.has_next
+        }, complete: function () {
             loading = false
             $(".loading").hide()
+            if (has_next === false) {
+                $(".end-of-results").show()
+            } else {
+                checkContainerHeight(query)
+            }
         }
     });
 }
 
+function checkContainerHeight(query) {
+    if (gameList[0].scrollHeight <= gamesContainer[0].clientHeight) {
+        load(query);
+    }
+}
+
 function init(query, gameUrl) {
     $(document).ready(function () {
-        let gamesContainer = $(".game-list-container")
-
         gamesContainer.on('scroll', function () {
             if (gamesContainer[0].scrollTop + gamesContainer[0].clientHeight >= gamesContainer[0].scrollHeight) {
                 load(query)
@@ -43,6 +53,5 @@ function init(query, gameUrl) {
 
         load(query)
     })
-
 }
 
