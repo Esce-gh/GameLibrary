@@ -23,7 +23,14 @@ class GameManager(models.Manager):
     def _save_games_from_json(self, games):
         for game in games:
             try:
-                self.create(name=game["name"], id=game["id"])
+                relevance = 0
+                image_id = None
+                if "total_rating_count" in game:
+                    relevance = game["total_rating_count"]
+                if "image_id" in game:
+                    image_id = game["image_id"]
+                    Igdb.save_covers(image_id)
+                self.create(name=game["name"], id=game["id"], relevance=relevance, image_id=image_id)
             except IntegrityError:
                 logger.exception(f"Failed to save, game with {game['id']} ID already exists in database")
 
@@ -34,6 +41,8 @@ class GameManager(models.Manager):
 class Game(models.Model):
     name = models.CharField(max_length=100)
     id = models.IntegerField(unique=True, primary_key=True)
+    relevance = models.IntegerField(default=0)
+    image_id = models.CharField(max_length=100, blank=True, null=True)
     games = GameManager()
 
     def __str__(self):

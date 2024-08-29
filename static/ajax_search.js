@@ -17,8 +17,13 @@ function load(query) {
             $(".loading").show();
         }, success: function (response) {
             response.items.forEach(function (item) {
+                let image_id = 'default'
+                if (item.image_id != null) {
+                    image_id = item.image_id
+                }
                 gameList.append(`<li class='col-md-6'>
                                     <div class="game-card bg-info-subtle">
+                                        <img src="static/covers/small_${image_id}.jpg" alt="${item.name} cover">
                                         <a style="vertical-align: middle" href="/game/${item.id}">${item.name}</a>
                                     </div>
                                 </li>`)

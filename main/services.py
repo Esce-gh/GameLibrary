@@ -38,20 +38,27 @@ class Igdb:
     def extended_search(self, title, excluded_ids):
         url = "https://api.igdb.com/v4/games"
         headers = self._get_authentication_headers()
-        exclude_string = ';'
+        exclude_string = ''
         if excluded_ids:
-            exclude_string = f'& id != {"(" + ",".join(map(str, excluded_ids)) + ")"};'
-        query = (f'fields id,name; '
+            exclude_string = f'& id != {"(" + ",".join(map(str, excluded_ids)) + ")"}'
+        query = (f'fields id,name,total_rating_count,cover.image_id; '
                  f'where name ~ *"{title}"* &'
                  f' (category=0 | category=2 | category=8 | category=9) &'
                  f' version_parent = null'
-                 f' {exclude_string}'
+                 f' {exclude_string};'
                  f'sort total_rating_count desc;'
                  f'limit 10;')
 
         response = requests.post(url, headers=headers, data=query)
         response.raise_for_status()
-        return response.json()
+        response = response.json()
+        for g in response:
+            if 'cover' in g:
+                g['image_id'] = g['cover']['image_id']
+            else:
+                g['image_id'] = None
+            g.pop('cover', None)
+        return response
 
     def get_games_by_id(self, ids):
         url = "https://api.igdb.com/v4/games/"
@@ -60,3 +67,14 @@ class Igdb:
         response = requests.post(url, headers=headers, data=query)
         response.raise_for_status()
         return response.json()
+
+    @staticmethod
+    def save_covers(image_id):  # TODO: save only small covers first then get big covers when needed
+        sizes = ["small", "big"]
+        for size in sizes:
+            url = f"https://images.igdb.com/igdb/image/upload/t_cover_{size}/{image_id}.jpg"
+            response = requests.get(url)
+            if response.status_code != 200:
+                continue
+            with open(f"./static/covers/{size}_{image_id}.jpg", "wb") as f:
+                f.write(response.content)

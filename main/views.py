@@ -37,7 +37,7 @@ def ajax_search(request):
     page_number = int(request.GET.get("page", 1))
 
     games = Game.games.search(query)  # TODO: order by and cache
-    paginator = Paginator(games.values('id', 'name'), settings.GLOBAL_SETTINGS['MAX_GAMES_PER_PAGE'])
+    paginator = Paginator(games.values('id', 'name', 'image_id').order_by('-relevance'), settings.GLOBAL_SETTINGS['MAX_GAMES_PER_PAGE'])
     if games.count() != 0 and page_number <= paginator.num_pages:
         page = paginator.get_page(str(page_number))
         items = list(page.object_list)
