@@ -29,7 +29,7 @@ class GameManager(models.Manager):
                     relevance = game["total_rating_count"]
                 if "image_id" in game:
                     image_id = game["image_id"]
-                    Igdb.save_covers(image_id)
+                    Igdb.save_covers(image_id, "small")
                 self.create(name=game["name"], id=game["id"], relevance=relevance, image_id=image_id)
             except IntegrityError:
                 logger.exception(f"Failed to save, game with {game['id']} ID already exists in database")

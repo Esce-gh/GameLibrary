@@ -1,6 +1,6 @@
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.http import HttpResponseNotAllowed, JsonResponse
+from django.http import HttpResponseNotAllowed, JsonResponse, HttpResponseForbidden
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.contrib import messages
@@ -32,10 +32,9 @@ def search(request):
 
 def ajax_search(request):
     query = request.GET.get("query")
-    # if len(query) < 3:
-    #     return Http
+    if len(query.strip()) < 3:
+        return HttpResponseForbidden()
     page_number = int(request.GET.get("page", 1))
-
     games = Game.games.search(query)  # TODO: order by and cache
     paginator = Paginator(games.values('id', 'name', 'image_id').order_by('-relevance'), settings.GLOBAL_SETTINGS['MAX_GAMES_PER_PAGE'])
     if games.count() != 0 and page_number <= paginator.num_pages:

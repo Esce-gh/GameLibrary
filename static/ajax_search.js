@@ -9,7 +9,7 @@ function load(query) {
         return
     }
     $.ajax({
-        url: "ajax_search", type: "get", //send it through get method
+        url: "ajax_search", type: "get",
         data: {
             query: query, page: page
         }, beforeSend: function () {
@@ -23,8 +23,10 @@ function load(query) {
                 }
                 gameList.append(`<li class='col-md-6'>
                                     <div class="game-card bg-info-subtle">
-                                        <img src="static/covers/small_${image_id}.jpg" alt="${item.name} cover">
-                                        <a style="vertical-align: middle" href="/game/${item.id}">${item.name}</a>
+                                        <a class="d-flex align-items-center" style="text-decoration: none" href="/game/${item.id}">
+                                            <img class="game-card-img me-3" src="static/covers/small_${image_id}.jpg" alt="${item.name} cover">
+                                            <h4 class="game-card-title align-middle me-0">${item.name}</h4>
+                                        </a>
                                     </div>
                                 </li>`)
             })

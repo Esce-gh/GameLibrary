@@ -15,7 +15,13 @@
 }
 
 .game-card {
-    height: 15vh;
+    height: 120px;
+}
+.game-card-img {
+    float: left;
+}
+.game-card-title {
+    text-align: left;
 }
 
 .loading {

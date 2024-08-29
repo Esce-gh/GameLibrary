@@ -4,7 +4,6 @@ from django.contrib.auth.models import User
 from django.http import Http404
 from django.test import TestCase
 from django.urls import reverse
-from GameLibrary import settings
 from main.models import Game, UserGameLibrary
 
 
@@ -26,7 +25,7 @@ class GameManagerTests(TestCase):
 
 
 class SearchViewTests(TestCase):
-    def test_should_show_a_message_when_query_length_less_than_4(self):
+    def test_should_show_a_message_when_query_length_less_than_3(self):
         response = self.client.get(reverse("main:search"), {'query': ' 12 '})
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Please enter at least 3 characters.')
@@ -35,6 +34,14 @@ class SearchViewTests(TestCase):
         response = self.client.get(reverse("main:search"), {'query': ' 123 '})
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, 'Please enter at least 3 characters.')
+
+    def test_should_return_403_when_query_length_less_than_3(self):
+        response = self.client.get(reverse("main:ajax_search"), {'query': ' 12 '})
+        self.assertEqual(response.status_code, 403)
+
+    def test_should_not_return_403_when_query_length_correct(self):
+        response = self.client.get(reverse("main:ajax_search"), {'query': ' 123 '})
+        self.assertNotEqual(response.status_code, 403)
 
 
 class GameViewTests(TestCase):
