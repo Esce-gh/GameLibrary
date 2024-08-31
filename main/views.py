@@ -1,3 +1,5 @@
+import os
+
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.http import HttpResponseNotAllowed, JsonResponse, HttpResponseForbidden
@@ -6,9 +8,10 @@ from django.urls import reverse
 from django.contrib import messages
 from GameLibrary import settings
 from main.models import UserGameLibrary, Game
+from main.serializers import UserGameLibrarySerializer
+from main.services import Igdb
 
 
-# Create your views here.
 def index(request):
     return render(request, "main/index.html")
 
@@ -19,6 +22,23 @@ def library(request):
     user_library = UserGameLibrary.objects.get_user_library(request.user.id)
     context = {"library": user_library}
     return render(request, "main/library.html", context)
+
+
+@login_required
+def library_search(request):
+    query = request.GET.get("query")
+    sort = request.GET.get("sort")
+    order = int(request.GET.get("order", 0))
+    page_number = request.GET.get("page", "1")
+
+    lib = UserGameLibrary.objects.advanced_search(request.user.id, query, sort, order)
+    paginator = Paginator(lib, settings.GLOBAL_SETTINGS['LIBRARY_DEFAULT_PAGE_SIZE'])
+    page = paginator.get_page(page_number)
+    serializer = UserGameLibrarySerializer(page.object_list, many=True)
+    return JsonResponse({
+        'items': serializer.data,
+        'num_pages': paginator.num_pages,
+    })
 
 
 def search(request):
@@ -61,7 +81,11 @@ def ajax_search(request):
 
 
 def game(request, game_id):
-    context = {"game": get_object_or_404(Game, id=game_id)}
+    game = get_object_or_404(Game, pk=game_id)
+    context = {"game": game}
+
+    if game.image_id is not None and not os.path.exists(f"./static/covers/big_{game.image_id}.jpg"):
+        Igdb.save_covers(game.image_id, "big")
 
     if request.user.is_authenticated:
         user_entry = UserGameLibrary.objects.get_library_entry(request.user.id, game_id)

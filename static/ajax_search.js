@@ -9,7 +9,7 @@ function load(query) {
         return
     }
     $.ajax({
-        url: "ajax_search", type: "get",
+        url: "/search/ajax", type: "get",
         data: {
             query: query, page: page
         }, beforeSend: function () {

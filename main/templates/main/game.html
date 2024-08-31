@@ -1,8 +1,12 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}{{ game.name }}{% endblock %}
 
 {% block content %}
+    {% with image_url="covers/big_"|add:game.image_id|add:".jpg" %}
+    <img src="{% static image_url %}" alt="{{ game.name }} cover art">
+    {% endwith %}
     <h2>{{ game.name }}</h2>
 
     {% if user.is_authenticated %}

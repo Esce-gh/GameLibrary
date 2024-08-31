@@ -3,6 +3,9 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models, IntegrityError
 import logging
+
+from django.db.models import When, Case, Value, IntegerField, F
+
 from .services import Igdb
 
 
@@ -52,9 +55,22 @@ class Game(models.Model):
 class UserGameLibraryManager(models.Manager):
     def get_library_entry(self, user_id, game_id):
         return self.filter(user_id=user_id, game_id=game_id).first()
-    
+
     def get_user_library(self, user_id):
         return self.filter(user_id=user_id)
+
+    def advanced_search(self, user_id, query=None, sort=None, order=0):
+        lib = self.get_user_library(user_id)
+        if query:
+            lib = lib.filter(game__name__icontains=query)
+        if sort:
+            if order == 1:
+                lib = lib.order_by(F(f'{sort}').desc(nulls_last=True))
+            else:
+                lib = lib.order_by(F(f'{sort}').asc(nulls_last=True))
+        else:
+            lib = lib.order_by(f"game__name")
+        return lib
 
     def save_library(self, user_id, game_id):
         try:

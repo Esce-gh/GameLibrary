@@ -15,9 +15,11 @@
 }
 
 .game-card {
+    border-radius: 10px;
     height: 120px;
 }
 .game-card-img {
+    border-radius: 10px;
     float: left;
 }
 .game-card-title {
