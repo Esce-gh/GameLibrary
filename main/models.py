@@ -1,3 +1,5 @@
+from enum import Enum
+
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
@@ -59,10 +61,20 @@ class UserGameLibraryManager(models.Manager):
     def get_user_library(self, user_id):
         return self.filter(user_id=user_id)
 
-    def advanced_search(self, user_id, query=None, sort=None, order=0):
+    def advanced_search(self, user_id, query=None, sort=None, order=0, min_rating=None, min_hours=None, status=None):
         lib = self.get_user_library(user_id)
         if query:
             lib = lib.filter(game__name__icontains=query)
+        if min_rating:
+            lib = lib.filter(rating__gte=int(min_rating))
+        if min_hours:
+            lib = lib.filter(hours_played__gte=int(min_hours))
+        if status == 'completed':
+            lib = lib.filter(status_completed=True)
+        elif status == 'playing':
+            lib = lib.filter(status_playing=True)
+        elif status == 'retired':
+            lib = lib.filter(status_retired=True)
         if sort:
             if order == 1:
                 lib = lib.order_by(F(f'{sort}').desc(nulls_last=True))
@@ -114,11 +126,19 @@ class UserGameLibrary(models.Model):
     game = models.ForeignKey(Game, on_delete=models.CASCADE)
     review = models.TextField(null=True, blank=True)    # TODO: char limit
     rating = models.FloatField(validators=[MinValueValidator(1.0), MaxValueValidator(10.0)], null=True, blank=True)
+    hours_played = models.FloatField(null=True, blank=True, validators=[MinValueValidator(0.0)])
+    num_completions = models.IntegerField(default=0)
+    status_playing = models.BooleanField(default=False)
+    status_completed = models.BooleanField(default=False)
+    status_retired = models.BooleanField(default=False)
+
     objects = UserGameLibraryManager()
 
     def clean(self):
         if self.rating is not None and not (1.0 <= self.rating <= 10.0):
             raise ValidationError("Rating must be between 1.0 and 10.0")
+        if self.hours_played is not None and not (0.0 <= self.hours_played):
+            raise ValidationError("Minimum hours played must be above 0.0")
 
     def save(self, *args, **kwargs):
         self.full_clean()

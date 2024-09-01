@@ -5,6 +5,7 @@
 {% load static %}
 
 {% block content %}
+
     <div class="container search-container">
         <div class="input-group input-group-lg search-bar mb-4">
             <input type="text" name="query" class="search-text form-control" aria-label="Sizing example input"
@@ -14,39 +15,56 @@
             </button>
         </div>
 
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <div class="d-flex align-items-center flex-grow-1 me-2">
-                <select class="form-select form-select-sm" id="sort" name="sort">
-                    <option value="game__name">Sort by Name</option>
-                    <option value="game__relevance">Sort by Relevance</option>
-                    <option value="rating">Sort by Review</option>
-                </select>
-                <button class="btn btn-outline-primary btn-sm ms-2 order-button">
-                    <i class="bi bi-arrow-down" id="order-button-icon"></i>
-                </button>
+        <div class="row mb-1">
+            <div class="col-md-4 d-flex align-items-center mb-2">
+                <div class="d-flex align-items-center flex-grow-1 me-2">
+                    <select class="form-select form-select-sm" id="sort" name="sort">
+                        <option value="game__name">Sort by Name</option>
+                        <option value="game__relevance">Sort by Relevance</option>
+                        <option value="rating">Sort by Review</option>
+                        <option value="num_completions">Sort by Number of completions</option>
+                        <option value="hours_played">Sort by Hours played</option>
+                    </select>
+                    <button class="btn btn-outline-primary btn-sm ms-2 order-button">
+                        <i class="bi bi-arrow-down" id="order-button-icon"></i>
+                    </button>
+                </div>
             </div>
 
-            <div class="flex-grow-1 me-2">
-                <input type="number" class="form-control form-control-sm" id="min-rating" name="min_rating"
-                       placeholder="Min Rating">
+            <div class="col-md-8 d-flex align-items-center mb-2">
+                <div class="me-2">
+                    <input type="number" class="form-control form-control-sm" id="min-rating" name="min_rating"
+                           placeholder="Min Rating">
+                </div>
+                <div class="me-2">
+                    <input type="number" class="form-control form-control-sm" id="min-hours" name="min_hours"
+                           placeholder="Min Hours">
+                </div>
+                <div>
+                    <select class="form-select form-select-sm" id="status" name="status">
+                        <option value="" selected disabled>Completion Status</option>
+                        <option value="">-</option>
+                        <option value="playing">Playing</option>
+                        <option value="completed">Completed</option>
+                        <option value="retired">Retired</option>
+                    </select>
+                </div>
             </div>
+        </div>
 
-            <div class="flex-grow-1 me-2">
-                <input type="number" class="form-control form-control-sm" id="min-hours" name="min_hours"
-                       placeholder="Min Hours">
-            </div>
-
-            <div>
-                <button class="btn btn-secondary btn-sm apply-filters-button">
-                    Apply
+        <div class="row mb-3">
+            <div class="col text-start">
+                <button class="btn btn-primary btn-sm apply-filters-button">
+                    Apply filters
                 </button>
             </div>
         </div>
     </div>
+
     <div class="container library-container">
         <ul class="library-list"></ul>
         <nav aria-label="Page navigation example">
-            <ul class="pagination"></ul>
+            <div class="pagination"></div>
         </nav>
     </div>
     <script src="{% static 'library.js' %}"></script>

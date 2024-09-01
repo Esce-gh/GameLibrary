@@ -18,7 +18,6 @@ def index(request):
 
 @login_required
 def library(request):
-    # TODO: paging
     user_library = UserGameLibrary.objects.get_user_library(request.user.id)
     context = {"library": user_library}
     return render(request, "main/library.html", context)
@@ -29,9 +28,12 @@ def library_search(request):
     query = request.GET.get("query")
     sort = request.GET.get("sort")
     order = int(request.GET.get("order", 0))
+    min_rating = request.GET.get("min_rating")
+    min_hours = request.GET.get("min_hours")
+    status = request.GET.get("status")
     page_number = request.GET.get("page", "1")
 
-    lib = UserGameLibrary.objects.advanced_search(request.user.id, query, sort, order)
+    lib = UserGameLibrary.objects.advanced_search(request.user.id, query, sort, order, min_rating, min_hours, status)
     paginator = Paginator(lib, settings.GLOBAL_SETTINGS['LIBRARY_DEFAULT_PAGE_SIZE'])
     page = paginator.get_page(page_number)
     serializer = UserGameLibrarySerializer(page.object_list, many=True)
@@ -55,7 +57,7 @@ def ajax_search(request):
     if len(query.strip()) < 3:
         return HttpResponseForbidden()
     page_number = int(request.GET.get("page", 1))
-    games = Game.games.search(query)  # TODO: order by and cache
+    games = Game.games.search(query)  # TODO: cache
     paginator = Paginator(games.values('id', 'name', 'image_id').order_by('-relevance'), settings.GLOBAL_SETTINGS['MAX_GAMES_PER_PAGE'])
     if games.count() != 0 and page_number <= paginator.num_pages:
         page = paginator.get_page(str(page_number))

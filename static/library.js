@@ -1,13 +1,22 @@
-function fetch(query, page = 1, sort, order = 0) {
+function fetch(page) {
     $.ajax({
         url: "/library/search", type: "get",
         data: {
-            query: query, page: page, sort: sort, order: order
+            query: query, page: page, sort: sort, order: order, min_rating: minRating, min_hours: minHours, status: status
         }, beforeSend: function () {
             list.empty()
         }, success: function (response) {
             response.items.forEach(function (item) {
-                list.append(`<li>${item.game.name}</li>`)
+                let image_id = 'default'
+                if (item.game.image_id != null) {
+                    image_id = item.game.image_id
+                }
+                list.append(`<div class="game-card bg-info-subtle mb-2">
+                                <a class="d-flex align-items-center" style="text-decoration: none" href="/game/${item.game.id}">
+                                    <img class="game-card-img me-3" src="/static/covers/small_${image_id}.jpg" alt="${item.game.name} cover">
+                                    <h4 class="game-card-title align-middle me-0">${item.game.name}</h4>
+                                </a>
+                            </div>`)
             })
             currentPage = page
             numPages = response.num_pages
@@ -26,22 +35,25 @@ function updatePagination() {
         previous = 'disabled'
     }
     pagination.empty()
-    pagination.append(`<li class="page-item"><a class="page-link" onclick="fetch(query, 1, sort, order)">First</a></li>
-        <li class="page-item ${previous}"><a class="page-link" onclick="fetch(query, currentPage-1, sort, order)">Previous</a></li>
+    pagination.append(`<li class="page-item"><a class="page-link" onclick="fetch(1)">First</a></li>
+        <li class="page-item ${previous}"><a class="page-link" onclick="fetch(currentPage-1)">Previous</a></li>
         <li class="page-item active"><a class="page-link">${currentPage}</a></li>
-        <li class="page-item ${next}"><a class="page-link" onclick="fetch(query, currentPage+1, sort, order)">Next</a></li>
-        <li class="page-item"><a class="page-link" onclick="fetch(query, numPages, sort, order)">Last</a></li>`
+        <li class="page-item ${next}"><a class="page-link" onclick="fetch(currentPage+1)">Next</a></li>
+        <li class="page-item"><a class="page-link" onclick="fetch(numPages)">Last</a></li>`
     )
 }
 
-$(".apply-filters-button")[0].addEventListener("click", function() {
+$(".apply-filters-button")[0].addEventListener("click", function () {
     sort = $("#sort").val()
     if (orderIcon.hasClass("bi-arrow-up")) {
         order = 1
     } else {
         order = 0
     }
-    fetch(query, 1, sort, order)
+    minRating = $("#min-rating")[0].value
+    minHours = $("#min-hours")[0].value
+    status = $("#status")[0].value
+    fetch(currentPage)
 })
 
 $(".order-button")[0].addEventListener("click", function () {
@@ -61,11 +73,14 @@ let numPages = 1
 let currentPage = 1
 let sort = ''
 let order = 0
+let minRating = null
+let minHours = null
+let status = ''
 $(".search-button")[0].addEventListener("click", function () {
     if (searchText.value !== query) {
-        query = searchText.value()
+        query = searchText.value
     }
-    fetch(query)
+    fetch(1)
 })
 
-fetch(query, currentPage, sort, order)
+fetch(1)

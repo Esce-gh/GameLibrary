@@ -69,7 +69,7 @@ class Igdb:
         return response.json()
 
     @staticmethod
-    def save_covers(image_id, size):  # TODO: save only small covers first then get big covers when needed
+    def save_covers(image_id, size):
         url = f"https://images.igdb.com/igdb/image/upload/t_cover_{size}/{image_id}.jpg"
         response = requests.get(url)
         if response.status_code != 200:
