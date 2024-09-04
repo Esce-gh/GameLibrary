@@ -1,12 +1,10 @@
-from enum import Enum
-
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models, IntegrityError
 import logging
 
-from django.db.models import When, Case, Value, IntegerField, F
+from django.db.models import F
 
 from .services import Igdb
 
@@ -126,7 +124,7 @@ class UserGameLibraryManager(models.Manager):
 class UserGameLibrary(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     game = models.ForeignKey(Game, on_delete=models.CASCADE)
-    review = models.TextField(null=True, blank=True)    # TODO: char limit
+    review = models.TextField(null=True, blank=True)
     rating = models.FloatField(null=True, blank=True, validators=[MinValueValidator(1.0), MaxValueValidator(10.0)])
     hours_played = models.FloatField(null=True, blank=True, validators=[MinValueValidator(0.0)])
     num_completions = models.FloatField(null=True, blank=True, validators=[MinValueValidator(0.0)])

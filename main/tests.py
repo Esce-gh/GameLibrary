@@ -48,13 +48,13 @@ class GameViewTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='test', password='test', pk=1)
         self.client.login(username='test', password='test')
-        self.game = Game(name="mock_game", id=1)
+        self.game = Game(name="test_game", id=1)
         self.game.save()
 
     def test_should_show_game_when_found(self):
         response = self.client.get(reverse("main:game", args=[self.game.id]))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'mock_game')
+        self.assertContains(response, 'test_game')
 
     @patch('main.views.get_object_or_404')
     def test_should_not_show_game_when_not_found(self, mock_get_object):
@@ -63,21 +63,21 @@ class GameViewTests(TestCase):
         self.assertEqual(response.status_code, 404)
 
     def test_should_show_user_input_when_authenticated_and_library_entry_found(self):
-        library_entry = UserGameLibrary(user_id=self.user.id, game_id=self.game.id, review='mock_review', rating=5.5)
+        library_entry = UserGameLibrary(user_id=self.user.id, game_id=self.game.id, review='test_review', rating=5.5, hours_played=10, num_completions=6.5)
         library_entry.save()
 
         response = self.client.get(reverse("main:game", args=[self.game.id]))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'mock_review')
+        self.assertContains(response, 'test_review')
         self.assertContains(response, '5.5')
+        self.assertContains(response, '10.0')
+        self.assertContains(response, '6.5')
         self.assertContains(response, 'Remove game from library')
         self.assertNotContains(response, 'Add game to library')
 
     def test_should_not_show_user_input_when_authenticated_and_library_entry_not_found(self):
         response = self.client.get(reverse("main:game", args=[self.game.id]))
         self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, 'mock_review')
-        self.assertNotContains(response, '5.5')
         self.assertNotContains(response, 'Remove game from library')
         self.assertContains(response, 'Add game to library')
 
@@ -85,9 +85,8 @@ class GameViewTests(TestCase):
         self.client.logout()
         response = self.client.get(reverse("main:game", args=[self.game.id]))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'mock_game')
-        self.assertNotContains(response, "<label for='review'>")
-        self.assertNotContains(response, "<label for='rating'>")
+        self.assertContains(response, 'test_game')
+        self.assertNotContains(response, "<form id=\"library-entry-form\">")
         self.assertNotContains(response, "Add game to library")
         self.assertNotContains(response, 'Remove game from library')
 

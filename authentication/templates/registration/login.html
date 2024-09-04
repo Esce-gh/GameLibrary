@@ -1,15 +1,17 @@
 {% extends 'base.html' %}
+{% load crispy_forms_filters %}
 
 {% block title %}Sign in{% endblock %}
 
 {% block content %}
-    <h1>login</h1>
-    <br>
+    <div class="d-flex justify-content-center mt-3 mb-3"><h1>Sign in</h1></div>
 
-    <form method="POST">
-        {% csrf_token %}
-        {{ form }}
-        <button type="submit">Login</button>
-        <p><a href="{% url 'register' %}">Create an account here</a></p>
-    </form>
+    <div style="border-radius: 10px" class="container bg-info-subtle p-3">
+        <form method="POST">
+            {% csrf_token %}
+            {{ form|crispy }}
+            <button style="float: left; margin-right: 20px" class="btn btn-primary" type="submit">Sign in</button>
+            <p><a href="{% url 'register' %}">Or create an account here</a></p>
+        </form>
+    </div>
 {% endblock %}
