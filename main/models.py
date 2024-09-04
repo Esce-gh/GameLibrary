@@ -95,21 +95,23 @@ class UserGameLibraryManager(models.Manager):
             logger.exception(f"Validation error for user {user_id}, game {game_id}")
             return False
 
-    def update_library(self, user_id, game_id, review, rating):
+    def update_library(self, user_id, game_id, review, rating, hours, completions, playing, completed, retired):
         try:
             entry = self.get(user_id=user_id, game_id=game_id)
             entry.review = review
-            if rating == "":
-                entry.rating = None
-            else:
-                entry.rating = float(rating)
+            entry.rating = rating
+            entry.hours_played = hours
+            entry.num_completions = completions
+            entry.status_playing = playing
+            entry.status_completed = completed
+            entry.status_retired = retired
             entry.save()
-            return True
-        except ValidationError:
+        except ValidationError as e:
             logger.exception(f"Validation error for user {user_id}, game {game_id}")
-            return False
-        except UserGameLibrary.DoesNotExist:
+            raise e
+        except UserGameLibrary.DoesNotExist as e:
             logger.exception(f"Cannot update an entry that doesn't exist. Game {game_id}, user {user_id}")
+            raise e
 
     def delete_library(self, user_id, game_id):
         try:
@@ -125,9 +127,9 @@ class UserGameLibrary(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     game = models.ForeignKey(Game, on_delete=models.CASCADE)
     review = models.TextField(null=True, blank=True)    # TODO: char limit
-    rating = models.FloatField(validators=[MinValueValidator(1.0), MaxValueValidator(10.0)], null=True, blank=True)
+    rating = models.FloatField(null=True, blank=True, validators=[MinValueValidator(1.0), MaxValueValidator(10.0)])
     hours_played = models.FloatField(null=True, blank=True, validators=[MinValueValidator(0.0)])
-    num_completions = models.IntegerField(default=0)
+    num_completions = models.FloatField(null=True, blank=True, validators=[MinValueValidator(0.0)])
     status_playing = models.BooleanField(default=False)
     status_completed = models.BooleanField(default=False)
     status_retired = models.BooleanField(default=False)
@@ -138,7 +140,9 @@ class UserGameLibrary(models.Model):
         if self.rating is not None and not (1.0 <= self.rating <= 10.0):
             raise ValidationError("Rating must be between 1.0 and 10.0")
         if self.hours_played is not None and not (0.0 <= self.hours_played):
-            raise ValidationError("Minimum hours played must be above 0.0")
+            raise ValidationError("Minimum hours played must be above or equal 0.0")
+        if self.num_completions is not None and not (0 <= self.num_completions):
+            raise ValidationError("Number of completions must be above or equal 0")
 
     def save(self, *args, **kwargs):
         self.full_clean()

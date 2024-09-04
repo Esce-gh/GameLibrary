@@ -4,46 +4,100 @@
 {% block title %}{{ game.name }}{% endblock %}
 
 {% block content %}
-    {% with image_url="covers/big_"|add:game.image_id|add:".jpg" %}
-    <img src="{% static image_url %}" alt="{{ game.name }} cover art">
-    {% endwith %}
-    <h2>{{ game.name }}</h2>
+    <div class="m-5">
+        <div class="game-card-big bg-info-subtle">
+            {% with image_url="covers/big_"|add:game.image_id|add:".jpg" %}
+                <img class="game-card-img" src="{% static image_url %}" alt="{{ game.name }} cover art">
+            {% endwith %}
+            <h1>{{ game.name }}</h1>
+            {% if user.is_authenticated %}
+                {% if user_entry %}
+                    <form method="post" action="{% url 'main:game_delete' game_id=game.id %}">
+                        {% csrf_token %}
+                        <button type="submit">Remove game from library</button>
+                    </form>
+                {% else %}
+                    <form method="post" action="{% url 'main:game_add' game_id=game.id %}">
+                        {% csrf_token %}
+                        <button type="submit">Add game to library</button>
+                    </form>
+                {% endif %}
+            {% endif %}
+        </div>
 
-    {% if user.is_authenticated %}
-        {% if user_entry %}
-            <form method="post" action="{% url 'main:game_delete' game_id=game.id %}">
-                {% csrf_token %}
-                <button type="submit">Remove game from library</button>
-            </form>
-        {% else %}
-            <form method="post" action="{% url 'main:game_add' game_id=game.id %}">
-                {% csrf_token %}
-                <button type="submit">Add game to library</button>
-            </form>
+        {% if user.is_authenticated and user_entry %}
+            <div class="mt-4 bg-info-subtle ps-3 pe-3" style="border-radius: 10px">
+                <form id="library-entry-form">
+                    {% csrf_token %}
+                    <!-- First Row: Checkboxes -->
+                    <div class="row mb-3 pt-2">
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="" id="playing" name="playing"
+                                       {% if user_entry.status_playing %}checked{% endif %}>
+                                <label class="form-check-label" for="playing">
+                                    Playing
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="" id="completed"
+                                       name="completed" {% if user_entry.status_completed %}checked{% endif %}>
+                                <label class="form-check-label" for="completed">
+                                    Completed
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="" id="retired" name="retired"
+                                       {% if user_entry.status_retired %}checked{% endif %}>
+                                <label class="form-check-label" for="retired">
+                                    Retired
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Second Row: Number Inputs -->
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="rating" class="form-label">Rating (1-10)</label>
+                            <input type="number" class="form-control" id="rating" name="rating" min="1" max="10"
+                                   {% if user_entry.rating %}value="{{ user_entry.rating }}"{% endif %}>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="hours-played" class="form-label">Hours Played</label>
+                            <input type="number" class="form-control" id="hours-played" name="hours_played" min="0"
+                                   {% if user_entry.hours_played %}value="{{ user_entry.hours_played }}"{% endif %}>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="num-completions" class="form-label">Number of Completions</label>
+                            <input type="number" class="form-control" id="num-completions" name="num_completions"
+                                   min="0"
+                                   {% if user_entry.num_completions %}value="{{ user_entry.num_completions }}"{% endif %}>
+                        </div>
+                    </div>
+
+                    <!-- Third Row: User Review and Apply Button -->
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="review" class="form-label">User Review</label>
+                            <textarea class="form-control" id="review" name="review"
+                                      rows="10">{% if user_entry.review %}{{ user_entry.review }}{% endif %}</textarea>
+                        </div>
+                    </div>
+
+                    <!-- Apply Button -->
+                    <div class="row">
+                        <div class="col-md-12 text-end pb-3">
+                            <button type="button" class="btn btn-primary form-control" id="apply-button">Apply</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
         {% endif %}
-
-        {% if user_entry %}
-            <form method="post" action="{% url 'main:game_edit' game_id=game.id %}">
-                {% csrf_token %}
-
-                <label for='review'>Review</label>
-                <textarea id='review' name='review'>{{ user_entry.review|default_if_none:"" }}</textarea>
-                <br>
-                <label for='rating'>Rating</label>
-                <input type="number" id='rating' name="rating" min='1' max="10" step="0.1"
-                       value="{{ user_entry.rating|default_if_none:"" }}">
-                <br>
-                <button type="submit">Save</button>
-            </form>
-        {% endif %}
-
-    {% endif %}
-
-    {% if messages %}
-        <ul>
-            {% for message in messages %}
-                <li>{{ message }}</li>
-            {% endfor %}
-        </ul>
-    {% endif %}
+        <script src="{% static 'game.js' %}"></script>
+    </div>
 {% endblock %}

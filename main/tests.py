@@ -110,7 +110,7 @@ class GameViewTests(TestCase):
 
     def test_should_redirect_when_game_edit_not_authorized(self):
         self.client.logout()
-        response = self.client.post(reverse("main:game_edit", args=[self.game.id]))
+        response = self.client.put(reverse("main:game_edit", args=[self.game.id]))
         self.assertRedirects(response, reverse("login"))
 
     def test_should_redirect_when_game_delete_not_authorized(self):

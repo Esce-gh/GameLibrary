@@ -33,3 +33,8 @@
 .end-of-results {
     display: none;
 }
+
+.game-card-big {
+    border-radius: 10px;
+    overflow: auto;
+}
