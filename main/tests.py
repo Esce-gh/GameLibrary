@@ -25,6 +25,10 @@ class GameManagerTests(TestCase):
 
 
 class SearchViewTests(TestCase):
+    def setUp(self):
+        self.game = Game(name="doom", id=1)
+        self.game.save()
+
     def test_should_show_a_message_when_query_length_less_than_3(self):
         response = self.client.get(reverse("main:search"), {'query': ' 12 '})
         self.assertEqual(response.status_code, 200)
@@ -42,6 +46,35 @@ class SearchViewTests(TestCase):
     def test_should_not_return_403_when_query_length_correct(self):
         response = self.client.get(reverse("main:ajax_search"), {'query': ' 123 '})
         self.assertNotEqual(response.status_code, 403)
+
+    @patch('main.views.cache.get')
+    def test_should_return_cached_values_when_found(self, cache_get):
+        cache_get.return_value = {'test': 'test_game'}
+        response = self.client.get(reverse("main:ajax_search"), {'query': 'doom'})
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(response.content, {'test': 'test_game'})
+
+    @patch('main.views.cache.get')
+    def test_should_not_return_cached_values_when_not_found(self, cache_get):
+        cache_get.return_value = None
+        response = self.client.get(reverse("main:ajax_search"), {'query': 'doom'})
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONNotEqual(response.content, {'test': 'test_game'})
+
+    def test_should_return_db_game_when_found(self):
+        response = self.client.get(reverse("main:ajax_search"), {'query': 'doom'})
+        self.assertEqual(response.status_code, 200)
+        json = response.content.decode('utf-8')
+        self.assertIn("doom", json)
+        self.assertIn("\"has_next\": true", json)
+
+    @patch('main.views.Game.games.search_api_excluding')
+    def test_should_not_return_db_game_when_not_found(self, api_mock):
+        api_mock.return_value = {}
+        response = self.client.get(reverse("main:ajax_search"), {'query': 'some_game_that_does_not_exist'})
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONNotEqual(response.content, {'test': 'some_game_that_does_not_exist'})
+        self.assertJSONEqual(response.content, {'items': [], 'has_next': False})
 
 
 class GameViewTests(TestCase):
@@ -63,7 +96,8 @@ class GameViewTests(TestCase):
         self.assertEqual(response.status_code, 404)
 
     def test_should_show_user_input_when_authenticated_and_library_entry_found(self):
-        library_entry = UserGameLibrary(user_id=self.user.id, game_id=self.game.id, review='test_review', rating=5.5, hours_played=10, num_completions=6.5)
+        library_entry = UserGameLibrary(user_id=self.user.id, game_id=self.game.id, review='test_review', rating=5.5,
+                                        hours_played=10, num_completions=6.5)
         library_entry.save()
 
         response = self.client.get(reverse("main:game", args=[self.game.id]))

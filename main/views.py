@@ -2,6 +2,7 @@ import json
 import os
 
 from django.contrib.auth.decorators import login_required
+from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.http import HttpResponseNotAllowed, JsonResponse, HttpResponseForbidden, HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
@@ -58,30 +59,33 @@ def ajax_search(request):
     if len(query.strip()) < 3:
         return HttpResponseForbidden()
     page_number = int(request.GET.get("page", 1))
-    games = Game.games.search(query)  # TODO: cache
+
+    cached_page = cache.get(f'search_{query}_page_{page_number}')
+    if cached_page:
+        return JsonResponse(cached_page)
+
+    games = Game.games.search(query)
     paginator = Paginator(games.values('id', 'name', 'image_id').order_by('-relevance'),
                           settings.GLOBAL_SETTINGS['MAX_GAMES_PER_PAGE'])
+
     if games.count() != 0 and page_number <= paginator.num_pages:
         page = paginator.get_page(str(page_number))
         items = list(page.object_list)
+    else:
+        items = Game.games.search_api_excluding(query, games)
 
-        return JsonResponse({
-            'items': items,
-            'has_next': True,
-        })
-
-    games_api = Game.games.search_api_excluding(query, games)
-
-    if len(games_api) == 0:
-        return JsonResponse({
+    if len(items) == 0:
+        response = {
             'items': [],
             'has_next': False
-        })
-
-    return JsonResponse({
-        'items': games_api,
-        'has_next': True
-    })
+        }
+    else:
+        response = {
+            'items': items,
+            'has_next': True
+        }
+    cache.set(f'search_{query}_page_{page_number}', response, timeout=60 * 15)
+    return JsonResponse(response)
 
 
 def game(request, game_id):
@@ -123,7 +127,8 @@ def game_edit(request, game_id):
         completed = data.get('completed', False)
         retired = data.get('retired', False)
         UserGameLibrary.objects.update_library(request.user.id, game_id, data.get('review'), data.get('rating'),
-                                               data.get('hours_played'), data.get('num_completions'), playing, completed,
+                                               data.get('hours_played'), data.get('num_completions'), playing,
+                                               completed,
                                                retired)
         return HttpResponse(status=200)
     except:
