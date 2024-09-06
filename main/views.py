@@ -1,6 +1,5 @@
 import json
 import os
-
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
 from django.core.paginator import Paginator
@@ -8,6 +7,7 @@ from django.http import HttpResponseNotAllowed, JsonResponse, HttpResponseForbid
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.contrib import messages
+from django.views.decorators.cache import cache_control
 from GameLibrary import settings
 from main.models import UserGameLibrary, Game
 from main.serializers import UserGameLibrarySerializer
@@ -19,13 +19,13 @@ def index(request):
 
 
 @login_required
+@cache_control(no_cache=True, must_revalidate=True, no_store=True)
 def library(request):
-    user_library = UserGameLibrary.objects.get_user_library(request.user.id)
-    context = {"library": user_library}
-    return render(request, "main/library.html", context)
+    return render(request, "main/library.html")
 
 
 @login_required
+@cache_control(no_cache=True, must_revalidate=True, no_store=True)
 def library_search(request):
     query = request.GET.get("query")
     sort = request.GET.get("sort")

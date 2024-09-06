@@ -26,6 +26,8 @@ class GameManagerTests(TestCase):
 
 class SearchViewTests(TestCase):
     def setUp(self):
+        self.user = User.objects.create_user(username='test', password='test', pk=1)
+        self.client.login(username='test', password='test')
         self.game = Game(name="doom", id=1)
         self.game.save()
 
@@ -75,6 +77,30 @@ class SearchViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertJSONNotEqual(response.content, {'test': 'some_game_that_does_not_exist'})
         self.assertJSONEqual(response.content, {'items': [], 'has_next': False})
+
+    @patch('main.models.UserGameLibrary.objects.advanced_search')
+    def test_library_search(self, mock_search):
+        mock_search.return_value = UserGameLibrary.objects.none()
+        query_params = {
+            'query': 'test',
+            'sort': 'game__name',
+            'order': 1,
+            'min_rating': 7,
+            'min_hours': 10,
+            'status': 'completed',
+            'page': 1
+        }
+        response = self.client.get(reverse("main:library_search"), query_params)
+        mock_search.assert_called_once_with(self.user.id, 'test', 'game__name', 1, '7', '10', 'completed')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        response_data = response.json()
+        self.assertIn('items', response_data)
+        self.assertIn('num_pages', response_data)
+        self.assertIsInstance(response_data['items'], list)
+        self.assertIsInstance(response_data['num_pages'], int)
+
 
 
 class GameViewTests(TestCase):

@@ -3,9 +3,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models, IntegrityError
 import logging
-
 from django.db.models import F
-
 from .services import Igdb
 
 
