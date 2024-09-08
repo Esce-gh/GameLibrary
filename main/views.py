@@ -11,7 +11,7 @@ from django.views.decorators.cache import cache_control
 from GameLibrary import settings
 from main.models import UserGameLibrary, Game
 from main.serializers import UserGameLibrarySerializer
-from main.services import Igdb
+from main.services import Igdb, SteamApi
 
 
 def index(request):
@@ -43,6 +43,12 @@ def library_search(request):
         'items': serializer.data,
         'num_pages': paginator.num_pages,
     })
+
+
+@login_required
+@cache_control(no_cache=True, must_revalidate=True, no_store=True)
+def library_fetch(request):
+    return HttpResponse(status=200)
 
 
 def search(request):

@@ -4,8 +4,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models, IntegrityError
 import logging
 from django.db.models import F
-from .services import Igdb
-
+from .services import Igdb, SteamApi
 
 logger = logging.getLogger(__name__)
 
@@ -26,12 +25,15 @@ class GameManager(models.Manager):
             try:
                 relevance = 0
                 image_id = None
+                steam_id = None
                 if "total_rating_count" in game:
                     relevance = game["total_rating_count"]
                 if "image_id" in game:
                     image_id = game["image_id"]
                     Igdb.save_covers(image_id, "small")
-                self.create(name=game["name"], id=game["id"], relevance=relevance, image_id=image_id)
+                if "steam_id" in game:
+                    steam_id = game["steam_id"]
+                self.create(name=game["name"], id=game["id"], relevance=relevance, image_id=image_id, steam_id=steam_id)
             except IntegrityError:
                 logger.exception(f"Failed to save, game with {game['id']} ID already exists in database")
 
@@ -44,6 +46,7 @@ class Game(models.Model):
     id = models.IntegerField(unique=True, primary_key=True)
     relevance = models.IntegerField(default=0)
     image_id = models.CharField(max_length=100, blank=True, null=True)
+    steam_id = models.IntegerField(blank=True, null=True)
     games = GameManager()
 
     def __str__(self):
@@ -114,6 +117,11 @@ class UserGameLibraryManager(models.Manager):
             self.filter(user_id=user_id, game_id=game_id).delete()
         except IntegrityError:
             logger.exception(f"Failed to delete user {user_id}, game {game_id}")
+
+    def import_library(self, user_id, url):
+        api = SteamApi()
+        steam_lib = api.get_user_library(url)
+
 
     def get_queryset(self):
         return super().get_queryset()

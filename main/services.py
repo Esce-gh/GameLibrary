@@ -1,6 +1,10 @@
 import requests
 from django.conf import settings
 from django.core.cache import cache
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class Igdb:
@@ -41,7 +45,7 @@ class Igdb:
         exclude_string = ''
         if excluded_ids:
             exclude_string = f'& id != {"(" + ",".join(map(str, excluded_ids)) + ")"}'
-        query = (f'fields id,name,total_rating_count,cover.image_id; '
+        query = (f'fields id,name,total_rating_count,cover.image_id, websites.url, websites.category; '
                  f'where name ~ *"{title}"* &'
                  f' (category=0 | category=2 | category=8 | category=9) &'
                  f' version_parent = null'
@@ -58,6 +62,20 @@ class Igdb:
             else:
                 g['image_id'] = None
             g.pop('cover', None)
+            for w in g['websites']:
+                if w['category'] != 13:
+                    continue
+                if w['url'][-1] == '/':
+                    w['url'] = w['url'][:-1]
+                try:
+                    g['steam_id'] = int(w['url'].split("/")[-1])
+                except ValueError:
+                    try:
+                        g['steam_id'] = int(w['url'].split("/")[-2])
+                    except ValueError:
+                        logger.exception(f'Could not parse steam id for url {w["url"]}')
+                break
+            g.pop('websites', None)
         return response
 
     def get_games_by_id(self, ids):
@@ -72,7 +90,28 @@ class Igdb:
     def save_covers(image_id, size):
         url = f"https://images.igdb.com/igdb/image/upload/t_cover_{size}/{image_id}.jpg"
         response = requests.get(url)
-        if response.status_code != 200:
-            return
+        response.raise_for_status()
         with open(f"./static/covers/{size}_{image_id}.jpg", "wb") as f:
             f.write(response.content)
+
+
+class SteamApi:
+    def __init__(self):
+        self.key = settings.STEAM_API_KEY
+
+    def get_user_library(self, url):
+        url = (f"https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/"
+               f"?key={self.key}&"
+               f"steamid={self._get_user_id(url)}&"
+               f"format=json")
+        response = requests.get(url)
+        response.raise_for_status()
+        response = response.json()['response']['games']
+        return response
+
+    @staticmethod
+    def _get_user_id(url):
+        url = f'https://steamid.venner.io/raw.php?input={url}'
+        response = requests.get(url)
+        response.raise_for_status()
+        return response.json()['steamid64']
