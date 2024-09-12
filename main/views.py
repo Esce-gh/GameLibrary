@@ -11,11 +11,17 @@ from django.views.decorators.cache import cache_control
 from GameLibrary import settings
 from main.models import UserGameLibrary, Game
 from main.serializers import UserGameLibrarySerializer
-from main.services import Igdb, SteamApi
+from main.services import Igdb
 
 
 def index(request):
     return render(request, "main/index.html")
+
+
+@login_required
+@cache_control(no_cache=True, must_revalidate=True, no_store=True)
+def user_settings(request):
+    return render(request, "main/settings.html")
 
 
 @login_required
@@ -47,8 +53,11 @@ def library_search(request):
 
 @login_required
 @cache_control(no_cache=True, must_revalidate=True, no_store=True)
-def library_fetch(request):
-    return HttpResponse(status=200)
+def library_import(request):
+    if request.method != "POST":
+        return HttpResponseForbidden
+    url = request.POST.get("url")
+    return JsonResponse(UserGameLibrary.objects.import_library(request.user.id, url))
 
 
 def search(request):

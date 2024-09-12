@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block title %}Library{% endblock %}
+{% block active_library %}active{% endblock %}
+{% load static %}
+
+{% block content %}
+
+    <div class="container">
+        <form action="{% url 'main:library_import' %}" method="post">
+            {% csrf_token %}
+            <label for="url">Url or steam id</label>
+            <input type="text" name="url" id="url">
+            <button type="submit">Import</button>
+        </form>
+    </div>
+
+{% endblock %}

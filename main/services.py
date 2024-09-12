@@ -1,8 +1,8 @@
+import math
 import requests
 from django.conf import settings
 from django.core.cache import cache
 import logging
-
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ class Igdb:
         exclude_string = ''
         if excluded_ids:
             exclude_string = f'& id != {"(" + ",".join(map(str, excluded_ids)) + ")"}'
-        query = (f'fields id,name,total_rating_count,cover.image_id, websites.url, websites.category; '
+        query = (f'fields id,name,total_rating_count,cover.image_id, external_games.uid, external_games.category;'
                  f'where name ~ *"{title}"* &'
                  f' (category=0 | category=2 | category=8 | category=9) &'
                  f' version_parent = null'
@@ -56,26 +56,8 @@ class Igdb:
         response = requests.post(url, headers=headers, data=query)
         response.raise_for_status()
         response = response.json()
-        for g in response:
-            if 'cover' in g:
-                g['image_id'] = g['cover']['image_id']
-            else:
-                g['image_id'] = None
-            g.pop('cover', None)
-            for w in g['websites']:
-                if w['category'] != 13:
-                    continue
-                if w['url'][-1] == '/':
-                    w['url'] = w['url'][:-1]
-                try:
-                    g['steam_id'] = int(w['url'].split("/")[-1])
-                except ValueError:
-                    try:
-                        g['steam_id'] = int(w['url'].split("/")[-2])
-                    except ValueError:
-                        logger.exception(f'Could not parse steam id for url {w["url"]}')
-                break
-            g.pop('websites', None)
+        for game in response:
+            self._validation(game)
         return response
 
     def get_games_by_id(self, ids):
@@ -85,6 +67,40 @@ class Igdb:
         response = requests.post(url, headers=headers, data=query)
         response.raise_for_status()
         return response.json()
+
+    def get_games_by_steam_ids(self, ids):  # max 400 ids at a time
+        if len(ids) > 400:
+            raise Exception("Too many ids (limit 400)")
+        url = "https://api.igdb.com/v4/external_games/"
+        headers = self._get_authentication_headers()
+        query = (f'fields game.id,game.name,game.total_rating_count,game.cover.image_id, uid, category;'
+                 f'where uid = {"(" + ",".join(map(str, ids)) + ")"} &'
+                 f' category = 1;'
+                 f'limit 400;')
+        response = requests.post(url, headers=headers, data=query)
+        response.raise_for_status()
+        response = response.json()
+        return response
+
+    def _validation(self, g):  # TODO: get rid of this
+        if 'cover' in g:
+            g['image_id'] = g['cover']['image_id']
+        else:
+            g['image_id'] = None
+        g.pop('cover', None)
+
+        if "total_rating_count" not in g:
+            g["total_rating_count"] = 0
+
+        g['steam_id'] = None
+        if 'external_games' not in g:
+            return
+        for service in g['external_games']:
+            if service['category'] == 1:
+                g['steam_id'] = service['uid']
+                break
+        g.pop('external_games', None)
+
 
     @staticmethod
     def save_covers(image_id, size):
@@ -100,9 +116,13 @@ class SteamApi:
         self.key = settings.STEAM_API_KEY
 
     def get_user_library(self, url):
-        url = (f"https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/"
+        url = (f"https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
                f"?key={self.key}&"
+               f"include_appinfo=true&"
                f"steamid={self._get_user_id(url)}&"
+               f"skip_unvetted_apps=false&"
+               f"include_played_free_games=true&"
+               f"include_free_sub=true&"
                f"format=json")
         response = requests.get(url)
         response.raise_for_status()

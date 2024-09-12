@@ -1,9 +1,11 @@
+import math
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models, IntegrityError
 import logging
 from django.db.models import F
+
 from .services import Igdb, SteamApi
 
 logger = logging.getLogger(__name__)
@@ -20,20 +22,44 @@ class GameManager(models.Manager):
         self._save_games_from_json(games_api)
         return games_api
 
+    def save_games_steam_id(self, ids):  # TODO: get covers
+        igdb_api = Igdb()
+        new_games = []
+        for i in range(math.ceil(len(ids) / 400)):
+            ids_sliced = ids[i * 400:(i + 1) * 400]
+            try:
+                new_games.extend(igdb_api.get_games_by_steam_ids(ids_sliced))
+            except Exception as e:
+                logger.exception(e)
+        created_games = []
+        bulk_games = [
+            self._create_game_object(game, created_games) for game in new_games if 'game' in game
+        ]
+        self.bulk_create(bulk_games, ignore_conflicts=True)
+        steam_ids = {steam_id for igdb_id, steam_id in created_games}
+        games_not_found = {x for x in ids if x not in steam_ids}
+        return {'steam_ids_failed': games_not_found, 'games_saved': created_games}
+
+
+    def _create_game_object(self, game, created_games=None):
+        game_details = game['game']
+        if created_games is not None:
+            created_games.append((game_details['id'], int(game['uid'])))
+        return Game(
+            name=game_details["name"],
+            id=game_details["id"],
+            relevance=game_details["total_rating_count"] if "total_rating_count" in game_details else 0,
+            image_id=game_details['cover']['image_id'] if 'cover' in game_details else None,
+            steam_id=game['uid']
+        )
+
     def _save_games_from_json(self, games):
         for game in games:
             try:
-                relevance = 0
-                image_id = None
-                steam_id = None
-                if "total_rating_count" in game:
-                    relevance = game["total_rating_count"]
-                if "image_id" in game:
-                    image_id = game["image_id"]
-                    Igdb.save_covers(image_id, "small")
-                if "steam_id" in game:
-                    steam_id = game["steam_id"]
-                self.create(name=game["name"], id=game["id"], relevance=relevance, image_id=image_id, steam_id=steam_id)
+                if game['image_id'] is not None:
+                    Igdb.save_covers(game['image_id'], "small")
+                self.create(name=game["name"], id=game["id"], relevance=game["total_rating_count"],
+                            image_id=game['image_id'], steam_id=game['steam_id'])
             except IntegrityError:
                 logger.exception(f"Failed to save, game with {game['id']} ID already exists in database")
 
@@ -121,7 +147,26 @@ class UserGameLibraryManager(models.Manager):
     def import_library(self, user_id, url):
         api = SteamApi()
         steam_lib = api.get_user_library(url)
+        steam_ids = [x['appid'] for x in steam_lib]
 
+        found_games = Game.games.get_queryset().filter(steam_id__in=steam_ids)
+        updated_steam_ids = []
+
+        for game in found_games:
+            steam_game = next(filter(lambda x: x['appid'] == game.steam_id, steam_lib))
+            updated_steam_ids.append(steam_game['appid'])
+            self.update_or_create(user_id=user_id, game_id=game.id, hours_played=steam_game['playtime_forever'] / 60)
+
+        steam_ids = [x for x in steam_ids if x not in updated_steam_ids]
+        save_response = Game.games.save_games_steam_id(steam_ids)
+        for id in save_response['games_saved']:
+            steam_game = next(filter(lambda x: x['appid'] == id[1], steam_lib))
+            try:
+                self.update_or_create(user_id=user_id, game_id=id[0], hours_played=steam_game['playtime_forever'] / 60)
+            except:
+                save_response['steam_ids_failed'].add(id[1])
+        save_errors = list(filter(lambda x: x['appid'] in save_response['steam_ids_failed'], steam_lib))
+        return {'save_errors': save_errors}
 
     def get_queryset(self):
         return super().get_queryset()

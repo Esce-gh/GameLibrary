@@ -43,7 +43,7 @@
                             {% csrf_token %}
                             <button class="dropdown-item" type="submit">Logout</button>
                         </form>
-                        <a class="dropdown-item" href="#">Settings</a>
+                        <a class="dropdown-item" href="{% url 'main:settings' %}">Settings</a>
                     </div>
                 </li>
             {% else %}
