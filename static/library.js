@@ -1,4 +1,4 @@
-function fetch(page) {
+function fetch_page(page) {
     $.ajax({
         url: "/library/search", type: "get",
         data: {
@@ -13,7 +13,8 @@ function fetch(page) {
                 }
                 list.append(`<div class="game-card bg-info-subtle mb-2">
                                 <a class="d-flex align-items-center" style="text-decoration: none" href="/game/${item.game.id}">
-                                    <img class="game-card-img me-3" src="/static/covers/small_${image_id}.jpg" alt="${item.game.name} cover">
+                                    <img class="game-card-img me-3" height="120" width="90" src="/static/covers/small_${image_id}.jpg" alt="${item.game.name} cover"
+                                    onerror="this.onerror=null; handleImageError(this, '${item.game.image_id}')">
                                     <h4 class="game-card-title align-middle me-0">${item.game.name}</h4>
                                 </a>
                             </div>`)
@@ -23,6 +24,19 @@ function fetch(page) {
             updatePagination()
         }
     });
+}
+
+function handleImageError(imgElement, imageId) {
+    imgElement.src = '/static/covers/small_default.jpg'; // Path to your default image
+
+    fetch(`/fetch-cover-small/${imageId}`)
+        .then(response => {
+            if (response.ok) {
+                // Try to reload the newly fetched image
+                imgElement.src = `/static/covers/small_${imageId}.jpg`;
+            }
+        })
+        .catch(error => console.error('Error fetching cover:', error));
 }
 
 function updatePagination() {
@@ -35,11 +49,11 @@ function updatePagination() {
         previous = 'disabled'
     }
     pagination.empty()
-    pagination.append(`<li class="page-item"><a class="page-link" onclick="fetch(1)">First</a></li>
-        <li class="page-item ${previous}"><a class="page-link" onclick="fetch(currentPage-1)">Previous</a></li>
+    pagination.append(`<li class="page-item"><a class="page-link" onclick="fetch_page(1)">First</a></li>
+        <li class="page-item ${previous}"><a class="page-link" onclick="fetch_page(currentPage-1)">Previous</a></li>
         <li class="page-item active"><a class="page-link">${currentPage}</a></li>
-        <li class="page-item ${next}"><a class="page-link" onclick="fetch(currentPage+1)">Next</a></li>
-        <li class="page-item"><a class="page-link" onclick="fetch(numPages)">Last</a></li>`
+        <li class="page-item ${next}"><a class="page-link" onclick="fetch_page(currentPage+1)">Next</a></li>
+        <li class="page-item"><a class="page-link" onclick="fetch_page(numPages)">Last</a></li>`
     )
 }
 
@@ -53,7 +67,7 @@ $(".apply-filters-button")[0].addEventListener("click", function () {
     minRating = $("#min-rating")[0].value
     minHours = $("#min-hours")[0].value
     status = $("#status")[0].value
-    fetch(currentPage)
+    fetch_page(currentPage)
 })
 
 $(".order-button")[0].addEventListener("click", function () {
@@ -80,7 +94,7 @@ $(".search-button")[0].addEventListener("click", function () {
     if (searchText.value !== query) {
         query = searchText.value
     }
-    fetch(1)
+    fetch_page(1)
 })
 
-fetch(1)
+fetch_page(1)
