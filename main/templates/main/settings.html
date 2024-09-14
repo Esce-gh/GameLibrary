@@ -1,18 +1,21 @@
 {% extends 'base.html' %}
+{% load crispy_forms_filters %}
 
-{% block title %}Library{% endblock %}
-{% block active_library %}active{% endblock %}
+{% block title %}Settings{% endblock %}
 {% load static %}
 
 {% block content %}
 
-    <div class="container">
-        <form action="{% url 'main:library_import' %}" method="post">
+    <div style="border-radius: 10px" class="container bg-info-subtle mt-4 pt-2 pb-3">
+        <h3>Import games from steam</h3>
+        <form id="import-steam-form">
             {% csrf_token %}
-            <label for="url">Url or steam id</label>
-            <input type="text" name="url" id="url">
-            <button type="submit">Import</button>
+            {{ form|crispy }}
+            <input type="submit" class="btn btn-primary form-control" value="Import"/>
         </form>
+        <div class="game-import-status pt-4"></div>
     </div>
+
+    <script src="{% static 'settings.js' %}"></script>
 
 {% endblock %}

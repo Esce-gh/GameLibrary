@@ -1,5 +1,6 @@
 import json
 import os
+
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
 from django.core.paginator import Paginator
@@ -8,20 +9,32 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.contrib import messages
 from django.views.decorators.cache import cache_control
+from requests import HTTPError
+
 from GameLibrary import settings
+from main.forms import SteamImportForm
 from main.models import UserGameLibrary, Game
 from main.serializers import UserGameLibrarySerializer
-from main.services import Igdb
+from main.services import Igdb, SteamApi
 
 
 def index(request):
     return render(request, "main/index.html")
 
 
+def fetch_cover_small(request, cover_id):
+    try:
+        Igdb.save_covers(cover_id, 'small')
+    except HTTPError as e:
+        return HttpResponse(status=404)
+    return HttpResponse(status=200)
+
+
 @login_required
 @cache_control(no_cache=True, must_revalidate=True, no_store=True)
 def user_settings(request):
-    return render(request, "main/settings.html")
+    form = SteamImportForm()
+    return render(request, "main/settings.html", {"form": form})
 
 
 @login_required
@@ -57,7 +70,10 @@ def library_import(request):
     if request.method != "POST":
         return HttpResponseForbidden
     url = request.POST.get("url")
-    return JsonResponse(UserGameLibrary.objects.import_library(request.user.id, url))
+    steam_id = SteamApi.get_user_id(url)
+    if steam_id is None:
+        return JsonResponse({'error': 'Steam profile not found'})
+    return JsonResponse(UserGameLibrary.objects.import_library(request.user.id, steam_id))
 
 
 def search(request):

@@ -56,8 +56,24 @@ class Igdb:
         response = requests.post(url, headers=headers, data=query)
         response.raise_for_status()
         response = response.json()
-        for game in response:
-            self._validation(game)
+        for g in response:
+            if 'cover' in g:
+                g['image_id'] = g['cover']['image_id']
+            else:
+                g['image_id'] = None
+            g.pop('cover', None)
+
+            if "total_rating_count" not in g:
+                g["total_rating_count"] = 0
+
+            g['steam_id'] = None
+            if 'external_games' not in g:
+                continue
+            for service in g['external_games']:
+                if service['category'] == 1:
+                    g['steam_id'] = service['uid']
+                    break
+            g.pop('external_games', None)
         return response
 
     def get_games_by_id(self, ids):
@@ -82,25 +98,6 @@ class Igdb:
         response = response.json()
         return response
 
-    def _validation(self, g):  # TODO: get rid of this
-        if 'cover' in g:
-            g['image_id'] = g['cover']['image_id']
-        else:
-            g['image_id'] = None
-        g.pop('cover', None)
-
-        if "total_rating_count" not in g:
-            g["total_rating_count"] = 0
-
-        g['steam_id'] = None
-        if 'external_games' not in g:
-            return
-        for service in g['external_games']:
-            if service['category'] == 1:
-                g['steam_id'] = service['uid']
-                break
-        g.pop('external_games', None)
-
 
     @staticmethod
     def save_covers(image_id, size):
@@ -115,23 +112,30 @@ class SteamApi:
     def __init__(self):
         self.key = settings.STEAM_API_KEY
 
-    def get_user_library(self, url):
+    def get_user_library(self, steam_id):
         url = (f"https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
                f"?key={self.key}&"
                f"include_appinfo=true&"
-               f"steamid={self._get_user_id(url)}&"
+               f"steamid={steam_id}&"
                f"skip_unvetted_apps=false&"
                f"include_played_free_games=true&"
                f"include_free_sub=true&"
                f"format=json")
         response = requests.get(url)
         response.raise_for_status()
-        response = response.json()['response']['games']
+        try:
+            response = response.json()['response']['games']
+        except:
+            response = None
         return response
 
     @staticmethod
-    def _get_user_id(url):
+    def get_user_id(url):
         url = f'https://steamid.venner.io/raw.php?input={url}'
         response = requests.get(url)
         response.raise_for_status()
-        return response.json()['steamid64']
+        try:
+            id = response.json()['steamid64']
+        except:
+            id = None
+        return id

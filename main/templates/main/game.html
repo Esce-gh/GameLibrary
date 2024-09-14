@@ -29,7 +29,6 @@
             <div class="mt-4 bg-info-subtle ps-3 pe-3" style="border-radius: 10px">
                 <form id="library-entry-form">
                     {% csrf_token %}
-                    <!-- First Row: Checkboxes -->
                     <div class="row mb-3 pt-2">
                         <div class="col-md-4">
                             <div class="form-check">
@@ -60,7 +59,6 @@
                         </div>
                     </div>
 
-                    <!-- Second Row: Number Inputs -->
                     <div class="row mb-3">
                         <div class="col-md-4">
                             <label for="rating" class="form-label">Rating (1-10)</label>
@@ -70,7 +68,7 @@
                         <div class="col-md-4">
                             <label for="hours-played" class="form-label">Hours Played</label>
                             <input type="number" class="form-control" id="hours-played" name="hours_played" min="0"
-                                   {% if user_entry.hours_played %}value="{{ user_entry.hours_played }}"{% endif %}>
+                                   {% if user_entry.hours_played %}value="{{ user_entry.hours_played|floatformat:1 }}"{% endif %}>
                         </div>
                         <div class="col-md-4">
                             <label for="num-completions" class="form-label">Number of Completions</label>
@@ -80,7 +78,6 @@
                         </div>
                     </div>
 
-                    <!-- Third Row: User Review and Apply Button -->
                     <div class="row mb-3">
                         <div class="col-md-12">
                             <label for="review" class="form-label">User Review</label>
@@ -89,7 +86,6 @@
                         </div>
                     </div>
 
-                    <!-- Apply Button -->
                     <div class="row">
                         <div class="col-md-12 text-end pb-3">
                             <button type="button" class="btn btn-primary form-control" id="apply-button">Apply</button>

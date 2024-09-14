@@ -22,7 +22,7 @@ class GameManager(models.Manager):
         self._save_games_from_json(games_api)
         return games_api
 
-    def save_games_steam_id(self, ids):  # TODO: get covers
+    def save_games_steam_id(self, ids):
         igdb_api = Igdb()
         new_games = []
         for i in range(math.ceil(len(ids) / 400)):
@@ -39,7 +39,6 @@ class GameManager(models.Manager):
         steam_ids = {steam_id for igdb_id, steam_id in created_games}
         games_not_found = {x for x in ids if x not in steam_ids}
         return {'steam_ids_failed': games_not_found, 'games_saved': created_games}
-
 
     def _create_game_object(self, game, created_games=None):
         game_details = game['game']
@@ -144,9 +143,11 @@ class UserGameLibraryManager(models.Manager):
         except IntegrityError:
             logger.exception(f"Failed to delete user {user_id}, game {game_id}")
 
-    def import_library(self, user_id, url):
+    def import_library(self, user_id, steam_id):
         api = SteamApi()
-        steam_lib = api.get_user_library(url)
+        steam_lib = api.get_user_library(steam_id)
+        if steam_lib is None:
+            return {'error': 'Could not retrieve games (this account might be private)'}
         steam_ids = [x['appid'] for x in steam_lib]
 
         found_games = Game.games.get_queryset().filter(steam_id__in=steam_ids)
@@ -155,16 +156,13 @@ class UserGameLibraryManager(models.Manager):
         for game in found_games:
             steam_game = next(filter(lambda x: x['appid'] == game.steam_id, steam_lib))
             updated_steam_ids.append(steam_game['appid'])
-            self.update_or_create(user_id=user_id, game_id=game.id, hours_played=steam_game['playtime_forever'] / 60)
+            self.update_or_create(user_id=user_id, game_id=game.id, defaults={'hours_played': steam_game['playtime_forever'] / 60})
 
         steam_ids = [x for x in steam_ids if x not in updated_steam_ids]
         save_response = Game.games.save_games_steam_id(steam_ids)
         for id in save_response['games_saved']:
             steam_game = next(filter(lambda x: x['appid'] == id[1], steam_lib))
-            try:
-                self.update_or_create(user_id=user_id, game_id=id[0], hours_played=steam_game['playtime_forever'] / 60)
-            except:
-                save_response['steam_ids_failed'].add(id[1])
+            self.update_or_create(user_id=user_id, game_id=id[0], defaults={'hours_played': steam_game['playtime_forever'] / 60})
         save_errors = list(filter(lambda x: x['appid'] in save_response['steam_ids_failed'], steam_lib))
         return {'save_errors': save_errors}
 
