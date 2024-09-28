@@ -24,6 +24,22 @@ class GameManagerTests(TestCase):
         self.assertTrue(game3 not in result)
 
 
+class ImportLibraryTests(TestCase):
+    @patch('main.services.SteamApi.get_user_id')
+    def test_should_return_error_when_steam_profile_not_found(self, mock_get_user_id):
+        mock_get_user_id.return_value = None
+        result = UserGameLibrary.objects.import_library(1, 'https://steamcommunity.com/profiles/1/')
+        self.assertEqual(result, {'error': 'Steam profile not found'})
+
+    @patch('main.services.SteamApi.get_user_library')
+    @patch('main.services.SteamApi.get_user_id')
+    def test_should_return_error_when_failed_to_retrieve_games(self, mock_get_user_id, mock_get_user_library):
+        mock_get_user_id.return_value = 1
+        mock_get_user_library.return_value = None
+        result = UserGameLibrary.objects.import_library(1, 'https://steamcommunity.com/profiles/1/')
+        self.assertEqual(result, {'error': 'Could not retrieve games (this account might be private)'})
+
+
 class SearchViewTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='test', password='test', pk=1)
@@ -100,7 +116,6 @@ class SearchViewTests(TestCase):
         self.assertIn('num_pages', response_data)
         self.assertIsInstance(response_data['items'], list)
         self.assertIsInstance(response_data['num_pages'], int)
-
 
 
 class GameViewTests(TestCase):
