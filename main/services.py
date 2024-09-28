@@ -1,4 +1,4 @@
-import math
+import re
 import requests
 from django.conf import settings
 from django.core.cache import cache
@@ -84,20 +84,19 @@ class Igdb:
         response.raise_for_status()
         return response.json()
 
-    def get_games_by_steam_ids(self, ids):  # max 400 ids at a time
-        if len(ids) > 400:
-            raise Exception("Too many ids (limit 400)")
+    def get_games_by_steam_ids(self, ids):  # max 500 ids at a time
+        if len(ids) > 500:
+            raise Exception("Too many ids (limit 500)")
         url = "https://api.igdb.com/v4/external_games/"
         headers = self._get_authentication_headers()
         query = (f'fields game.id,game.name,game.total_rating_count,game.cover.image_id, uid, category;'
                  f'where uid = {"(" + ",".join(map(str, ids)) + ")"} &'
                  f' category = 1;'
-                 f'limit 400;')
+                 f'limit 500;')
         response = requests.post(url, headers=headers, data=query)
         response.raise_for_status()
         response = response.json()
         return response
-
 
     @staticmethod
     def save_covers(image_id, size):
@@ -129,13 +128,20 @@ class SteamApi:
             response = None
         return response
 
-    @staticmethod
-    def get_user_id(url):
-        url = f'https://steamid.venner.io/raw.php?input={url}'
-        response = requests.get(url)
+    def get_user_id(self, url):
+        steam_url = url.split("/")
+        if steam_url[-1] == "":
+            steam_url.pop()
+        if re.match('^\d{17}$', steam_url[-1]):
+            return steam_url[-1]
+
+        request = (f'https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/'
+                   f'?key={self.key}&'
+                   f'vanityurl={steam_url[-1]}')
+        response = requests.get(request)
         response.raise_for_status()
         try:
-            id = response.json()['steamid64']
+            id = response.json()['response']['steamid']
         except:
             id = None
         return id

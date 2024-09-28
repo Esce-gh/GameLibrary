@@ -70,10 +70,7 @@ def library_import(request):
     if request.method != "POST":
         return HttpResponseForbidden
     url = request.POST.get("url")
-    steam_id = SteamApi.get_user_id(url)
-    if steam_id is None:
-        return JsonResponse({'error': 'Steam profile not found'})
-    return JsonResponse(UserGameLibrary.objects.import_library(request.user.id, steam_id))
+    return JsonResponse(UserGameLibrary.objects.import_library(request.user.id, url))
 
 
 def search(request):

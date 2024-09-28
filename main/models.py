@@ -25,13 +25,13 @@ class GameManager(models.Manager):
     def save_games_steam_id(self, ids):
         igdb_api = Igdb()
         new_games = []
-        for i in range(math.ceil(len(ids) / 400)):
-            ids_sliced = ids[i * 400:(i + 1) * 400]
+        for i in range(math.ceil(len(ids) / 500)):
+            ids_sliced = ids[i * 500:(i + 1) * 500]
             try:
                 new_games.extend(igdb_api.get_games_by_steam_ids(ids_sliced))
             except Exception as e:
                 logger.exception(e)
-        created_games = []
+        created_games = set()
         bulk_games = [
             self._create_game_object(game, created_games) for game in new_games if 'game' in game
         ]
@@ -43,7 +43,7 @@ class GameManager(models.Manager):
     def _create_game_object(self, game, created_games=None):
         game_details = game['game']
         if created_games is not None:
-            created_games.append((game_details['id'], int(game['uid'])))
+            created_games.add((game_details['id'], int(game['uid'])))
         return Game(
             name=game_details["name"],
             id=game_details["id"],
@@ -67,7 +67,7 @@ class GameManager(models.Manager):
 
 
 class Game(models.Model):
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=300)
     id = models.IntegerField(unique=True, primary_key=True)
     relevance = models.IntegerField(default=0)
     image_id = models.CharField(max_length=100, blank=True, null=True)
@@ -143,27 +143,35 @@ class UserGameLibraryManager(models.Manager):
         except IntegrityError:
             logger.exception(f"Failed to delete user {user_id}, game {game_id}")
 
-    def import_library(self, user_id, steam_id):
+    def import_library(self, user_id, url):
         api = SteamApi()
+        steam_id = api.get_user_id(url)
+        if steam_id is None:
+            return {'error': 'Steam profile not found'}
+
         steam_lib = api.get_user_library(steam_id)
         if steam_lib is None:
             return {'error': 'Could not retrieve games (this account might be private)'}
-        steam_ids = [x['appid'] for x in steam_lib]
+        steam_lib = {game['appid']: game for game in steam_lib}
 
-        found_games = Game.games.get_queryset().filter(steam_id__in=steam_ids)
-        updated_steam_ids = []
+        def create_lib_object(game):
+            updated_steam_ids.add(game.steam_id)
+            return UserGameLibrary(user_id=user_id, game_id=game.id,
+                                   hours_played=steam_lib[game.steam_id]['playtime_forever'] / 60)
 
-        for game in found_games:
-            steam_game = next(filter(lambda x: x['appid'] == game.steam_id, steam_lib))
-            updated_steam_ids.append(steam_game['appid'])
-            self.update_or_create(user_id=user_id, game_id=game.id, defaults={'hours_played': steam_game['playtime_forever'] / 60})
+        found_games = Game.games.get_queryset().filter(steam_id__in=steam_lib)
+        updated_steam_ids = set()
+        games = [create_lib_object(game) for game in found_games]
+        self.bulk_create(games, update_conflicts=True, update_fields=['hours_played'],
+                         unique_fields=['user_id', 'game_id'])
 
-        steam_ids = [x for x in steam_ids if x not in updated_steam_ids]
+        steam_ids = [x for x in steam_lib if x not in updated_steam_ids]
         save_response = Game.games.save_games_steam_id(steam_ids)
-        for id in save_response['games_saved']:
-            steam_game = next(filter(lambda x: x['appid'] == id[1], steam_lib))
-            self.update_or_create(user_id=user_id, game_id=id[0], defaults={'hours_played': steam_game['playtime_forever'] / 60})
-        save_errors = list(filter(lambda x: x['appid'] in save_response['steam_ids_failed'], steam_lib))
+        new_games = [
+            UserGameLibrary(user_id=user_id, game_id=id[0], hours_played=steam_lib[id[1]]['playtime_forever'] / 60)
+            for id in save_response['games_saved']]
+        self.bulk_create(new_games, ignore_conflicts=True)
+        save_errors = [steam_lib[game] for game in steam_lib if int(game) in save_response['steam_ids_failed']]
         return {'save_errors': save_errors}
 
     def get_queryset(self):
